@@ -4,6 +4,7 @@ struct RecordButton: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let isRecording: Bool
     let isDisabled: Bool
+    var disabledReason: String?
     let action: () -> Void
 
     var body: some View {
@@ -28,6 +29,6 @@ struct RecordButton: View {
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.45 : 1)
         .accessibilityLabel(isRecording ? "Stop recording" : "Start recording")
-        .accessibilityHint("Double tap to toggle video recording")
+        .accessibilityHint(disabledReason ?? "Double tap to toggle video recording")
     }
 }
