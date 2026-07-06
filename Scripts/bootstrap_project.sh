@@ -6,6 +6,13 @@ cd "$ROOT_DIR"
 
 echo "Bootstrapping Sora project from project.yml..."
 
+if ! grep -q "BUNDLE_IDENTIFIER: com.local.sora" "$ROOT_DIR/project.yml"; then
+  echo "Sora bundle identifier must stay com.local.sora." >&2
+  exit 1
+fi
+
+echo "Bundle identifier confirmed: com.local.sora"
+
 if ! command -v xcodegen >/dev/null 2>&1; then
   echo "xcodegen not found."
   if command -v brew >/dev/null 2>&1; then
