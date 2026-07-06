@@ -35,14 +35,10 @@ if [[ ! -d "$PROJECT" ]]; then
   exit 1
 fi
 
-PRODUCT_NAME="${PRODUCT_NAME:-$(
-  xcodebuild -project "$PROJECT" -scheme "$SCHEME" -showBuildSettings 2>/dev/null |
-    awk -F' = ' '/PRODUCT_NAME = / { print $2; exit }'
-)}"
-PRODUCT_NAME="${PRODUCT_NAME:-Sora}"
 UNSIGNED_APP_DIR="$DERIVED_DATA/Build/Products/$CONFIGURATION-iphoneos"
-UNSIGNED_APP_PATH="$UNSIGNED_APP_DIR/$PRODUCT_NAME.app"
-UNSIGNED_IPA_PATH="$ARTIFACT_DIR/$PRODUCT_NAME-unsigned.ipa"
+PRODUCT_NAME="${PRODUCT_NAME:-Sora}"
+UNSIGNED_APP_PATH=""
+UNSIGNED_IPA_PATH=""
 
 if [[ "$SIGNED_BUILD" == true ]]; then
   KEYCHAIN_PATH="$RUNNER_TEMP/sora-build.keychain-db"
@@ -113,10 +109,14 @@ else
     CODE_SIGN_IDENTITY="" \
     clean build | tee "$LOG_DIR/unsigned-device-build.log"
 
+  UNSIGNED_APP_PATH="$(find "$UNSIGNED_APP_DIR" -maxdepth 1 -type d -name "*.app" -print -quit)"
   if [[ ! -d "$UNSIGNED_APP_PATH" ]]; then
     echo "Unsigned device app was not produced at $UNSIGNED_APP_PATH" >&2
     exit 1
   fi
+
+  PRODUCT_NAME="$(basename "$UNSIGNED_APP_PATH" .app)"
+  UNSIGNED_IPA_PATH="$ARTIFACT_DIR/$PRODUCT_NAME-unsigned.ipa"
 
   rm -rf "$UNSIGNED_PAYLOAD_DIR"
   mkdir -p "$UNSIGNED_PAYLOAD_DIR/Payload"
