@@ -16,6 +16,7 @@ final class SoraCameraManager: NSObject, ObservableObject, SoraCameraFrameOutput
 
     private let captureSession = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
+    private let frameContext = CIContext(options: [.cacheIntermediates: false])
     private let sessionQueue = DispatchQueue(label: "com.sora.camera.session", qos: .userInitiated)
     private let videoOutputQueue = DispatchQueue(label: "com.sora.camera.videoOutput", qos: .userInteractive)
     private let frameCounterLock = NSLock()
@@ -316,16 +317,23 @@ extension SoraCameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-        let image = CIImage(cvPixelBuffer: pixelBuffer).oriented(.right)
+        let sourceImage = CIImage(cvPixelBuffer: pixelBuffer).oriented(.right)
+        guard let detachedImage = makeDetachedImage(from: sourceImage) else { return }
         let frame = SoraFrame(
-            pixelBuffer: pixelBuffer,
-            ciImage: image,
+            ciImage: detachedImage,
             timestamp: timestamp,
             frameIndex: nextFrameIndex()
         )
 
         let handler = onFrame
         handler?(frame)
+    }
+
+    private func makeDetachedImage(from image: CIImage) -> CIImage? {
+        let extent = image.extent.integral
+        guard extent.width > 0, extent.height > 0 else { return nil }
+        guard let cgImage = frameContext.createCGImage(image, from: extent) else { return nil }
+        return CIImage(cgImage: cgImage)
     }
 }
 

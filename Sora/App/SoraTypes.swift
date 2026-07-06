@@ -8,7 +8,6 @@ import CoreVideo
 import SwiftUI
 
 struct SoraFrame {
-    let pixelBuffer: CVPixelBuffer
     let ciImage: CIImage
     let timestamp: CMTime
     let frameIndex: Int64
