@@ -181,6 +181,7 @@ struct CameraView: View {
     @State private var authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
     @State private var isRequestingPermission = false
     @State private var isPresentingAuthorizedCamera = false
+    @State private var authorizationPresentationTask: Task<Void, Never>?
 
     var body: some View {
         Group {
@@ -202,6 +203,8 @@ struct CameraView: View {
             if phase == .active {
                 refreshAuthorizationStatus()
             } else if phase == .inactive || phase == .background {
+                authorizationPresentationTask?.cancel()
+                authorizationPresentationTask = nil
                 isPresentingAuthorizedCamera = false
             }
         }
@@ -229,7 +232,21 @@ struct CameraView: View {
     }
 
     private func updateAuthorizedPresentation() {
-        isPresentingAuthorizedCamera = authorizationStatus == .authorized && scenePhase == .active
+        authorizationPresentationTask?.cancel()
+
+        guard authorizationStatus == .authorized, scenePhase == .active else {
+            isPresentingAuthorizedCamera = false
+            authorizationPresentationTask = nil
+            return
+        }
+
+        authorizationPresentationTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !Task.isCancelled else { return }
+            guard authorizationStatus == .authorized, scenePhase == .active else { return }
+            isPresentingAuthorizedCamera = true
+            authorizationPresentationTask = nil
+        }
     }
 }
 
@@ -238,15 +255,17 @@ private struct AuthorizedCameraView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var pipeline = CameraPipelineController()
     @State private var hasStartedSession = false
+    @State private var isChromeVisible = false
     @State private var pendingStartTask: Task<Void, Never>?
     @State private var pendingProcessingTask: Task<Void, Never>?
+    @State private var pendingChromeTask: Task<Void, Never>?
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
             previewContent
 
-            if let toast = appState.toast {
+            if isChromeVisible, let toast = appState.toast {
                 VStack {
                     Spacer(minLength: 0)
                     SoraToastView(toast: toast) {
@@ -262,34 +281,38 @@ private struct AuthorizedCameraView: View {
         }
         .ignoresSafeArea()
         .safeAreaInset(edge: .top, spacing: 0) {
-            SoraHeader(cameraManager: pipeline.cameraManager) { lens in
-                pipeline.selectLens(lens)
-            } selectQuality: { mode in
-                pipeline.selectQuality(mode)
-            } openSettings: {
-                appState.isSettingsOpen = true
+            if isChromeVisible {
+                SoraHeader(cameraManager: pipeline.cameraManager) { lens in
+                    pipeline.selectLens(lens)
+                } selectQuality: { mode in
+                    pipeline.selectQuality(mode)
+                } openSettings: {
+                    appState.isSettingsOpen = true
+                }
+                .padding(.top, 8)
             }
-            .padding(.top, 8)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 10) {
-                if appState.isRecording || appState.recordingState == .saving {
-                    RecordingHUD(
-                        state: appState.recordingState,
-                        onRecordTapped: pipeline.toggleRecording,
-                        onStopTapped: pipeline.toggleRecording
-                    )
-                    .padding(.horizontal, 16)
-                }
+            if isChromeVisible {
+                VStack(spacing: 10) {
+                    if appState.isRecording || appState.recordingState == .saving {
+                        RecordingHUD(
+                            state: appState.recordingState,
+                            onRecordTapped: pipeline.toggleRecording,
+                            onStopTapped: pipeline.toggleRecording
+                        )
+                        .padding(.horizontal, 16)
+                    }
 
-                ControlsOverlay(
-                    coordinator: pipeline.recordingCoordinator,
-                    showOriginal: $pipeline.showOriginal,
-                    toggleRecording: pipeline.toggleRecording,
-                    openFilters: { appState.isFilterStudioOpen = true }
-                )
+                    ControlsOverlay(
+                        coordinator: pipeline.recordingCoordinator,
+                        showOriginal: $pipeline.showOriginal,
+                        toggleRecording: pipeline.toggleRecording,
+                        openFilters: { appState.isFilterStudioOpen = true }
+                    )
+                }
+                .padding(.bottom, 8)
             }
-            .padding(.bottom, 8)
         }
         .sheet(isPresented: $appState.isFilterStudioOpen) {
             FilterStudioSheet(showOriginal: $pipeline.showOriginal)
@@ -324,9 +347,12 @@ private struct AuthorizedCameraView: View {
             pendingStartTask = nil
             pendingProcessingTask?.cancel()
             pendingProcessingTask = nil
+            pendingChromeTask?.cancel()
+            pendingChromeTask = nil
             pipeline.setFrameProcessingEnabled(false)
             pipeline.stop()
             hasStartedSession = false
+            isChromeVisible = false
         }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
@@ -337,11 +363,23 @@ private struct AuthorizedCameraView: View {
                 pendingStartTask = nil
                 pendingProcessingTask?.cancel()
                 pendingProcessingTask = nil
+                pendingChromeTask?.cancel()
+                pendingChromeTask = nil
                 pipeline.setFrameProcessingEnabled(false)
                 pipeline.stop()
                 hasStartedSession = false
+                isChromeVisible = false
             @unknown default:
                 break
+            }
+        }
+        .onChange(of: pipeline.cameraManager.isRunning) { _, isRunning in
+            if isRunning {
+                scheduleChromeReveal()
+            } else {
+                pendingChromeTask?.cancel()
+                pendingChromeTask = nil
+                isChromeVisible = false
             }
         }
         .onReceive(pipeline.cameraManager.$currentLens) { lens in
@@ -411,6 +449,7 @@ private struct AuthorizedCameraView: View {
         guard !hasStartedSession else { return }
 
         pendingStartTask?.cancel()
+        isChromeVisible = false
         pendingStartTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(350))
             guard !Task.isCancelled else { return }
@@ -434,6 +473,24 @@ private struct AuthorizedCameraView: View {
             guard hasStartedSession else { return }
 
             pipeline.setFrameProcessingEnabled(true)
+        }
+    }
+
+    private func scheduleChromeReveal() {
+        guard scenePhase == .active else { return }
+        guard hasStartedSession else { return }
+
+        pendingChromeTask?.cancel()
+        pendingChromeTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled else { return }
+            guard scenePhase == .active else { return }
+            guard hasStartedSession else { return }
+            guard pipeline.cameraManager.isRunning else { return }
+
+            withAnimation(.easeOut(duration: 0.2)) {
+                isChromeVisible = true
+            }
         }
     }
 }
