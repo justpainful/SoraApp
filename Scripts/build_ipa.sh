@@ -13,6 +13,7 @@ EXPORT_DIR="$ROOT_DIR/build/export"
 ARTIFACT_DIR="$ROOT_DIR/build-output"
 LOG_DIR="$ARTIFACT_DIR/logs"
 EXPORT_OPTIONS_PLIST="$ROOT_DIR/build/ExportOptions.plist"
+UNSIGNED_IPA_PATH="$ARTIFACT_DIR/Sora-unsigned-sideloadly.ipa"
 
 mkdir -p "$DERIVED_DATA" "$EXPORT_DIR" "$ARTIFACT_DIR" "$LOG_DIR" "$ROOT_DIR/build"
 
@@ -27,7 +28,7 @@ for required_var in APPLE_CERTIFICATE_BASE64 P12_PASSWORD PROVISIONING_PROFILE_B
   fi
 done
 
-echo "Build mode: $([[ "$SIGNED_BUILD" == true ]] && echo signed || echo verification-only)"
+echo "Build mode: $([[ "$SIGNED_BUILD" == true ]] && echo signed || echo unsigned-device-sideloadly)"
 
 if [[ ! -d "$PROJECT" ]]; then
   echo "Missing $PROJECT. Run Scripts/bootstrap_project.sh first." >&2
@@ -89,23 +90,41 @@ EOF
 
   find "$EXPORT_DIR" -maxdepth 1 \( -name "*.ipa" -o -name "*.app" \) -exec cp -R {} "$ARTIFACT_DIR/" \;
 else
+  PRODUCT_DIR="$DERIVED_DATA/Build/Products/Release-iphoneos"
+  APP_PATH="$PRODUCT_DIR/Sora.app"
+  PAYLOAD_DIR="$ROOT_DIR/build/Payload"
+
   xcodebuild \
     -project "$PROJECT" \
     -scheme "$SCHEME" \
-    -configuration Debug \
-    -sdk iphonesimulator \
-    -destination "generic/platform=iOS Simulator" \
+    -configuration Release \
+    -sdk iphoneos \
+    -destination "generic/platform=iOS" \
     -derivedDataPath "$DERIVED_DATA" \
     BUNDLE_IDENTIFIER="$BUNDLE_IDENTIFIER" \
     PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_IDENTIFIER" \
     CODE_SIGNING_ALLOWED=NO \
-    clean build | tee "$LOG_DIR/compile-verification.log"
+    CODE_SIGNING_REQUIRED=NO \
+    AD_HOC_CODE_SIGNING_ALLOWED=NO \
+    clean build | tee "$LOG_DIR/unsigned-device-build.log"
 
-  cat > "$ARTIFACT_DIR/README_UNSIGNED.txt" <<EOF
-This run verified project generation and compilation only.
-No installable IPA was exported because Apple signing secrets were missing.
-Provide APPLE_CERTIFICATE_BASE64, P12_PASSWORD, PROVISIONING_PROFILE_BASE64,
-KEYCHAIN_PASSWORD, DEVELOPMENT_TEAM, BUNDLE_IDENTIFIER, and EXPORT_METHOD
-to produce an installable signed IPA artifact.
+  if [[ ! -d "$APP_PATH" ]]; then
+    echo "Expected unsigned app not found at $APP_PATH" >&2
+    find "$DERIVED_DATA/Build/Products" -maxdepth 3 -type d -name "*.app" -print >&2 || true
+    exit 1
+  fi
+
+  rm -rf "$PAYLOAD_DIR" "$UNSIGNED_IPA_PATH"
+  mkdir -p "$PAYLOAD_DIR"
+  cp -R "$APP_PATH" "$PAYLOAD_DIR/Sora.app"
+  (cd "$ROOT_DIR/build" && zip -qry "$UNSIGNED_IPA_PATH" Payload)
+
+  cat > "$ARTIFACT_DIR/README_SIDELOADLY_UNSIGNED.txt" <<EOF
+This artifact contains Sora-unsigned-sideloadly.ipa.
+It is an unsigned device build packaged as an IPA for local signing through Sideloadly.
+Use your Apple developer account inside Sideloadly to sign and install it on your iPhone.
+This is not an App Store/TestFlight signed IPA.
 EOF
+
+  echo "Created unsigned Sideloadly IPA: $UNSIGNED_IPA_PATH"
 fi
