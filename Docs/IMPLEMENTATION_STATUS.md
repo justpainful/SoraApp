@@ -31,6 +31,9 @@ Ship a local beauty-retouching camera/editor pass for Sora with realistic skin r
 - [x] Presets retuned toward local beauty refinement
 - [x] Privacy copy rewritten around factual on-device processing
 - [x] Prototypes retained for reference
+- [x] Camera screen reset away from dashboard styling toward camera-first chrome
+- [x] Blue gradient-heavy presentation removed from primary camera surfaces
+- [x] Camera lifecycle tightened to stop/start with scene activity changes
 
 ## Deferred Scope
 - [ ] Body contouring / silhouette shaping engine
@@ -41,3 +44,4 @@ Ship a local beauty-retouching camera/editor pass for Sora with realistic skin r
 ## Verification Notes
 - Local Xcode verification is still unavailable on this Windows host, but the GitHub macOS workflow completed successfully for the current branch.
 - Git integration verification succeeded on branch `feature/liquid-glass-ui-prototype`.
+- Launch-crash diagnosis is currently code-level plus lifecycle hardening; fresh runtime proof still needs the next GitHub/Apple lane or a device install because local Simulator tooling is unavailable on this host.

@@ -10,13 +10,13 @@ struct RecordButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(Color.white.opacity(0.14))
-                    .frame(width: 96, height: 96)
+                    .fill(Color.white.opacity(0.10))
+                    .frame(width: 92, height: 92)
                     .overlay(
                         Circle()
-                            .strokeBorder(Color.white.opacity(0.20), lineWidth: 1)
+                            .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
                     )
-                    .soraGlassCircle(tint: .white.opacity(0.08), interactive: !isDisabled, fallbackStrokeOpacity: 0.12)
+                    .soraGlassCircle(tint: .white.opacity(0.06), interactive: !isDisabled, fallbackStrokeOpacity: 0.08)
 
                 RoundedRectangle(cornerRadius: isRecording ? 14 : 32, style: .continuous)
                     .fill(isRecording ? SoraTheme.danger : Color.white)

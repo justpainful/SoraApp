@@ -160,16 +160,13 @@ final class CameraPipelineController: ObservableObject {
 
 struct CameraView: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var pipeline = CameraPipelineController()
+    @State private var hasStartedSession = false
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [SoraTheme.backgroundTop, SoraTheme.backgroundBottom],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            Color.black.ignoresSafeArea()
 
             if pipeline.authorizationStatus == .authorized {
                 previewContent
@@ -201,16 +198,10 @@ struct CameraView: View {
                     .padding(.horizontal, 16)
                 }
 
-                if !pipeline.recordingCoordinator.recentRecordings.isEmpty {
-                    MiniGalleryStrip(urls: pipeline.recordingCoordinator.recentRecordings)
-                        .padding(.horizontal, 16)
-                }
-
                 ControlsOverlay(
                     coordinator: pipeline.recordingCoordinator,
                     showOriginal: $pipeline.showOriginal,
                     toggleRecording: pipeline.toggleRecording,
-                    selectQuality: pipeline.selectQuality,
                     openFilters: { appState.isFilterStudioOpen = true }
                 )
             }
@@ -252,11 +243,29 @@ struct CameraView: View {
             Task { @MainActor in
                 pipeline.bind(appState: appState)
                 appState.lensMode = pipeline.cameraManager.currentLens
-                pipeline.start()
+                if !hasStartedSession {
+                    hasStartedSession = true
+                    pipeline.start()
+                }
             }
         }
         .onDisappear {
             pipeline.stop()
+            hasStartedSession = false
+        }
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .active:
+                if pipeline.authorizationStatus == .authorized && !hasStartedSession {
+                    hasStartedSession = true
+                    pipeline.start()
+                }
+            case .inactive, .background:
+                pipeline.stop()
+                hasStartedSession = false
+            @unknown default:
+                break
+            }
         }
         .onReceive(pipeline.cameraManager.$currentLens) { lens in
             if appState.lensMode != lens {
@@ -286,7 +295,7 @@ struct CameraView: View {
             } else if !pipeline.hasRenderedFrame {
                 ProgressView("Loading camera...")
                     .padding(20)
-                    .soraPanel()
+                    .soraGlassRounded(cornerRadius: 20, tint: .white.opacity(0.06), fallbackStrokeOpacity: 0.08)
             }
         }
     }
@@ -310,7 +319,7 @@ struct CameraView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(20)
-        .soraPanel()
+        .soraGlassRounded(cornerRadius: 20, tint: .white.opacity(0.06), fallbackStrokeOpacity: 0.08)
         .padding(.horizontal, 24)
     }
 }

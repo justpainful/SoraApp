@@ -57,15 +57,7 @@ struct SettingsSheet: View {
                     }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(
-                LinearGradient(
-                    colors: [SoraTheme.backgroundTop, SoraTheme.backgroundBottom],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            )
+            .scrollContentBackground(.automatic)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { appState.isSettingsOpen = false }) {
@@ -74,7 +66,6 @@ struct SettingsSheet: View {
                             .frame(width: 34, height: 34)
                     }
                     .buttonStyle(.plain)
-                    .soraGlassCircle(interactive: true)
                 }
             }
             .navigationTitle("Settings")

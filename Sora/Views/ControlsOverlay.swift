@@ -6,7 +6,6 @@ struct ControlsOverlay: View {
     @Binding var showOriginal: Bool
 
     let toggleRecording: () -> Void
-    let selectQuality: (SoraQualityMode) -> Void
     let openFilters: () -> Void
 
     var body: some View {
@@ -23,137 +22,111 @@ struct ControlsOverlay: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
-                .soraGlassRounded(cornerRadius: 20, tint: .orange.opacity(0.12))
+                .soraGlassRounded(cornerRadius: 18, tint: .orange.opacity(0.12), fallbackStrokeOpacity: 0.08)
                 .padding(.horizontal, 16)
             }
 
-            HStack(spacing: 12) {
-                statusCard
-
-                if let latestRecording = coordinator.recentRecordings.first {
-                    ShareLink(item: latestRecording) {
-                        actionPill(
-                            title: "Share",
-                            systemImage: "photo.on.rectangle.angled",
-                            isActive: true
-                        )
+            HStack(spacing: 10) {
+                Button {
+                    withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
+                        showOriginal.toggle()
                     }
-                    .accessibilityLabel("Share latest recording")
-                } else {
-                    actionPill(
-                        title: "Share",
+                } label: {
+                    compactControl(
+                        title: showOriginal ? "Filtered" : "Original",
+                        systemImage: showOriginal ? "eye.slash" : "eye",
+                        isActive: showOriginal
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Compare original camera image")
+
+                if !coordinator.recentRecordings.isEmpty {
+                    compactControl(
+                        title: "Recent",
                         systemImage: "photo.on.rectangle.angled",
                         isActive: false
                     )
-                    .opacity(0.5)
+                    .opacity(0.92)
                     .accessibilityHidden(true)
                 }
+
+                Spacer(minLength: 0)
+
+                Button {
+                    appState.resetFilters()
+                } label: {
+                    compactControl(
+                        title: "Reset",
+                        systemImage: "arrow.counterclockwise",
+                        isActive: false
+                    )
+                }
+                .buttonStyle(.plain)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 18)
 
-            SoraGlassContainer(spacing: 12) {
-                HStack(alignment: .center, spacing: 14) {
-                    Menu {
-                        ForEach(SoraQualityMode.allCases) { mode in
-                            Button {
-                                selectQuality(mode)
-                            } label: {
-                                Label(mode.rawValue, systemImage: mode == .performance ? "speedometer" : "sparkles")
-                            }
-                        }
-                    } label: {
-                        actionPill(
-                            title: appState.qualityMode == .performance ? "Speed" : "Quality",
-                            systemImage: appState.qualityMode == .performance ? "speedometer" : "sparkles",
-                            isActive: true
-                        )
+            HStack(alignment: .center) {
+                if let latestRecording = coordinator.recentRecordings.first {
+                    ShareLink(item: latestRecording) {
+                        actionButton(systemImage: "photo.on.rectangle.angled")
                     }
-                    .accessibilityLabel("Select quality mode")
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Share latest recording")
+                } else {
+                    actionButton(systemImage: "photo.on.rectangle.angled")
+                        .opacity(0.45)
+                        .accessibilityHidden(true)
+                }
 
+                Spacer(minLength: 18)
+
+                RecordButton(
+                    isRecording: appState.isRecording,
+                    isDisabled: appState.recordingState == .saving
+                ) {
+                    toggleRecording()
+                }
+
+                Spacer(minLength: 18)
+
+                SoraGlassContainer(spacing: 10) {
                     Button(action: openFilters) {
-                        actionPill(title: "Looks", systemImage: "slider.horizontal.3", isActive: appState.isFilterStudioOpen)
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer(minLength: 0)
-
-                    RecordButton(
-                        isRecording: appState.isRecording,
-                        isDisabled: appState.recordingState == .saving
-                    ) {
-                        toggleRecording()
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Button {
-                        withAnimation(.spring(response: 0.26, dampingFraction: 0.78)) {
-                            showOriginal.toggle()
-                        }
-                    } label: {
-                        actionPill(
-                            title: showOriginal ? "Filtered" : "Original",
-                            systemImage: showOriginal ? "eye.slash" : "eye",
-                            isActive: showOriginal
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Compare original camera image")
-
-                    Button {
-                        appState.resetFilters()
-                    } label: {
-                        actionPill(title: "Reset", systemImage: "arrow.counterclockwise", isActive: false)
+                        actionButton(systemImage: "slider.horizontal.3")
                     }
                     .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 16)
         }
-        .padding(.bottom, 20)
+        .padding(.bottom, 24)
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: appState.recordingState.statusText)
     }
 
-    private var statusCard: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(appState.recordingState.statusText)
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(appState.recordingState.statusColor)
-
-            if let url = coordinator.recentRecordings.first {
-                Text(url.lastPathComponent)
-                    .font(.caption)
-                    .foregroundStyle(SoraTheme.textSecondary)
-                    .lineLimit(1)
-            } else {
-                Text("No recent clips")
-                    .font(.caption)
-                    .foregroundStyle(SoraTheme.textSecondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .soraGlassRounded(cornerRadius: 22, tint: .white.opacity(0.06))
-    }
-
-    private func actionPill(title: String, systemImage: String, isActive: Bool) -> some View {
-        VStack(spacing: 6) {
+    private func compactControl(title: String, systemImage: String, isActive: Bool) -> some View {
+        HStack(spacing: 6) {
             Image(systemName: systemImage)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
 
             Text(title)
-                .font(.caption2.weight(.bold))
+                .font(.caption.weight(.semibold))
         }
         .foregroundStyle(isActive ? Color.black : Color.white)
-        .frame(width: 66, height: 66)
-        .background(
-            Circle()
-                .fill(isActive ? Color.white : Color.clear)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Capsule().fill(isActive ? Color.white : Color.clear))
+        .soraGlassCapsule(
+            tint: isActive ? .white.opacity(0.18) : .white.opacity(0.06),
+            interactive: true,
+            fallbackStrokeOpacity: 0.08
         )
-        .soraGlassCircle(
-            tint: isActive ? .white.opacity(0.18) : .white.opacity(0.08),
-            interactive: true
-        )
+    }
+
+    private func actionButton(systemImage: String) -> some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 19, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 52, height: 52)
+            .soraGlassCircle(interactive: true, fallbackStrokeOpacity: 0.08)
     }
 }

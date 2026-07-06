@@ -6,16 +6,7 @@ struct CameraPermissionView: View {
     
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.015, green: 0.055, blue: 0.13),
-                    Color(red: 0.015, green: 0.13, blue: 0.28),
-                    Color(red: 0.02, green: 0.22, blue: 0.44)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            Color.black.ignoresSafeArea()
             
             VStack(spacing: 24) {
                 Image(systemName: "camera.fill")
@@ -51,6 +42,7 @@ struct CameraPermissionView: View {
                 }
                 .padding(.top, 16)
             }
+            .padding(.horizontal, 24)
         }
     }
 }

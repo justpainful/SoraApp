@@ -9,35 +9,8 @@ struct SoraHeader: View {
     let openSettings: () -> Void
 
     var body: some View {
-        SoraGlassContainer(spacing: 12) {
+        VStack(spacing: 10) {
             HStack(spacing: 12) {
-                HStack(spacing: 12) {
-                    Image("SoraLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 42, height: 42)
-                        .padding(4)
-                        .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Sora")
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(SoraTheme.textPrimary)
-
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(appState.recordingState.statusColor)
-                                .frame(width: 8, height: 8)
-
-                            Text(appState.recordingState.statusText)
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(appState.recordingState.statusColor)
-                        }
-                    }
-                }
-
-                Spacer()
-
                 Menu {
                     ForEach(SoraQualityMode.allCases) { mode in
                         Button {
@@ -47,65 +20,76 @@ struct SoraHeader: View {
                         }
                     }
                 } label: {
-                    VStack(spacing: 2) {
-                        Image(systemName: appState.qualityMode == .performance ? "speedometer" : "sparkles")
-                            .font(.system(size: 16, weight: .semibold))
-
-                        Text(appState.qualityMode == .performance ? "SPD" : "HQ")
-                            .font(.caption2.weight(.bold))
-                    }
-                    .foregroundStyle(.white)
-                    .frame(width: 48, height: 48)
+                    Image(systemName: appState.qualityMode == .performance ? "speedometer" : "sparkles")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
                 }
-                .soraGlassCircle(interactive: true)
+                .soraGlassCircle(interactive: true, fallbackStrokeOpacity: 0.08)
                 .accessibilityLabel("Quality mode")
 
-                HStack(spacing: 8) {
-                    ForEach(cameraManager.availableLensModes) { mode in
-                        Button {
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
-                                selectLens(mode)
-                            }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: mode == .wide ? "camera.macro.circle" : "camera.aperture")
-                                    .font(.system(size: 13, weight: .semibold))
+                Spacer(minLength: 0)
 
+                SoraGlassContainer(spacing: 8) {
+                    HStack(spacing: 8) {
+                        ForEach(cameraManager.availableLensModes) { mode in
+                            Button {
+                                withAnimation(.spring(response: 0.26, dampingFraction: 0.82)) {
+                                    selectLens(mode)
+                                }
+                            } label: {
                                 Text(mode.rawValue)
-                                    .font(.caption.weight(.semibold))
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(cameraManager.currentLens == mode ? .black : .white)
+                                    .frame(minWidth: 56)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        Capsule()
+                                            .fill(cameraManager.currentLens == mode ? Color.white : Color.clear)
+                                    )
                             }
-                            .foregroundStyle(cameraManager.currentLens == mode ? Color.black : SoraTheme.textPrimary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(
-                                Capsule()
-                                    .fill(cameraManager.currentLens == mode ? Color.white : Color.clear)
+                            .buttonStyle(.plain)
+                            .soraGlassCapsule(
+                                tint: cameraManager.currentLens == mode ? .white.opacity(0.18) : .white.opacity(0.06),
+                                interactive: true,
+                                fallbackStrokeOpacity: 0.08
                             )
+                            .accessibilityLabel(mode == .wide ? "1x lens" : "0.5x lens")
+                            .accessibilityAddTraits(cameraManager.currentLens == mode ? [.isSelected] : [])
                         }
-                        .buttonStyle(.plain)
-                        .soraGlassCapsule(
-                            tint: cameraManager.currentLens == mode ? .white.opacity(0.18) : .white.opacity(0.08),
-                            interactive: true
-                        )
-                        .accessibilityLabel(mode == .wide ? "1x lens" : "0.5x lens")
-                        .accessibilityAddTraits(cameraManager.currentLens == mode ? [.isSelected] : [])
                     }
                 }
+
+                Spacer(minLength: 0)
 
                 Button(action: openSettings) {
                     Image(systemName: "gearshape")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(SoraTheme.textPrimary)
-                        .frame(width: 48, height: 48)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
-                .soraGlassCircle(interactive: true)
+                .soraGlassCircle(interactive: true, fallbackStrokeOpacity: 0.08)
                 .accessibilityLabel("Settings")
+            }
+
+            if appState.recordingState != .idle {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(appState.recordingState.statusColor)
+                        .frame(width: 8, height: 8)
+
+                    Text(appState.recordingState.statusText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .soraGlassCapsule(tint: .white.opacity(0.06), fallbackStrokeOpacity: 0.08)
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .soraGlassRounded(cornerRadius: 28, tint: .white.opacity(0.06))
-        .padding(.horizontal, 16)
+        .padding(.top, 8)
     }
 }

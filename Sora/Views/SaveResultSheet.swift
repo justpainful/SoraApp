@@ -19,27 +19,27 @@ struct SaveResultSheet: View {
 
             Text(title)
                 .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
 
             Text(message)
                 .font(.system(size: 15, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.76))
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
             if case .success(let localURL) = result {
                 VStack(spacing: 8) {
                     Text("Local file")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.58))
+                        .foregroundStyle(.secondary)
 
                     Text(localURL.lastPathComponent)
                         .font(.system(.footnote, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(.primary)
                         .multilineTextAlignment(.center)
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity)
-                .soraGlassRounded(cornerRadius: 18, tint: .white.opacity(0.08))
+                .soraGlassRounded(cornerRadius: 18, tint: .white.opacity(0.04), fallbackStrokeOpacity: 0.08)
             }
 
             Button("Done") {
@@ -52,16 +52,7 @@ struct SaveResultSheet: View {
             .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .padding(24)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.03, green: 0.08, blue: 0.16),
-                    Color(red: 0.04, green: 0.14, blue: 0.28)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background(Color(uiColor: .systemBackground))
         .presentationDragIndicator(.visible)
     }
 

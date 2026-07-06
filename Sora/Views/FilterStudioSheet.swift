@@ -118,17 +118,7 @@ struct FilterStudioSheet: View {
                 .padding(.bottom, 16)
         }
         .padding(.bottom, 14)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.04, green: 0.07, blue: 0.11),
-                    Color(red: 0.06, green: 0.10, blue: 0.17)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
+        .background(Color.black.ignoresSafeArea())
         .presentationDetents([.height(355), .medium])
         .presentationBackground(.ultraThinMaterial)
     }

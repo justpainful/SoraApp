@@ -46,15 +46,15 @@ struct SoraSlider: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color(red: 0.12, green: 0.45, blue: 0.95),
-                                    Color(red: 0.35, green: 0.68, blue: 1.0)
+                                    SoraTheme.accent.opacity(0.78),
+                                    .white
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
                         .frame(width: max(activeWidth, height), height: height)
-                        .shadow(color: Color(red: 0.12, green: 0.45, blue: 0.95).opacity(0.35), radius: 5, x: 0, y: 0)
+                        .shadow(color: SoraTheme.accent.opacity(0.22), radius: 5, x: 0, y: 0)
                     
                     // Thumb Handle
                     Circle()
@@ -63,7 +63,7 @@ struct SoraSlider: View {
                         .shadow(color: Color.black.opacity(0.35), radius: 5, x: 0, y: 2)
                         .overlay(
                             Circle()
-                                .stroke(Color(red: 0.12, green: 0.45, blue: 0.95).opacity(0.85), lineWidth: isDragging ? 2 : 1)
+                                .stroke(SoraTheme.accent.opacity(0.85), lineWidth: isDragging ? 2 : 1)
                         )
                         // Centered offset on the active track width
                         .offset(x: activeWidth - (thumbSize / 2))

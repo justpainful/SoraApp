@@ -24,15 +24,15 @@ struct BeforeAfterButton: View {
 
                     Text("Compare")
                         .font(.caption2.weight(.semibold))
-                        .foregroundStyle((showOriginal ? Color.orange : Color.white).opacity(0.78))
+                        .foregroundStyle((showOriginal ? SoraTheme.accent : Color.white).opacity(0.78))
                 }
             }
-            .foregroundColor(showOriginal ? Color.orange : Color.white)
+            .foregroundColor(showOriginal ? SoraTheme.accent : Color.white)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .background(Capsule().fill(showOriginal ? Color.white : Color.clear))
             .soraGlassCapsule(
-                tint: showOriginal ? .orange.opacity(0.18) : .white.opacity(0.08),
+                tint: showOriginal ? SoraTheme.accent.opacity(0.18) : .white.opacity(0.08),
                 interactive: true
             )
         }
