@@ -13,10 +13,7 @@ EXPORT_DIR="$ROOT_DIR/build/export"
 ARTIFACT_DIR="$ROOT_DIR/build-output"
 LOG_DIR="$ARTIFACT_DIR/logs"
 EXPORT_OPTIONS_PLIST="$ROOT_DIR/build/ExportOptions.plist"
-UNSIGNED_APP_DIR="$DERIVED_DATA/Build/Products/$CONFIGURATION-iphoneos"
-UNSIGNED_APP_PATH="$UNSIGNED_APP_DIR/Sora.app"
 UNSIGNED_PAYLOAD_DIR="$ROOT_DIR/build/unsigned-payload"
-UNSIGNED_IPA_PATH="$ARTIFACT_DIR/Sora-unsigned.ipa"
 
 mkdir -p "$DERIVED_DATA" "$EXPORT_DIR" "$ARTIFACT_DIR" "$LOG_DIR" "$ROOT_DIR/build"
 
@@ -37,6 +34,15 @@ if [[ ! -d "$PROJECT" ]]; then
   echo "Missing $PROJECT. Run Scripts/bootstrap_project.sh first." >&2
   exit 1
 fi
+
+PRODUCT_NAME="${PRODUCT_NAME:-$(
+  xcodebuild -project "$PROJECT" -scheme "$SCHEME" -showBuildSettings 2>/dev/null |
+    awk -F' = ' '/PRODUCT_NAME = / { print $2; exit }'
+)}"
+PRODUCT_NAME="${PRODUCT_NAME:-Sora}"
+UNSIGNED_APP_DIR="$DERIVED_DATA/Build/Products/$CONFIGURATION-iphoneos"
+UNSIGNED_APP_PATH="$UNSIGNED_APP_DIR/$PRODUCT_NAME.app"
+UNSIGNED_IPA_PATH="$ARTIFACT_DIR/$PRODUCT_NAME-unsigned.ipa"
 
 if [[ "$SIGNED_BUILD" == true ]]; then
   KEYCHAIN_PATH="$RUNNER_TEMP/sora-build.keychain-db"
