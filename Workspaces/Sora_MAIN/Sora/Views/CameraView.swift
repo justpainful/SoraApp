@@ -8,6 +8,7 @@ final class CameraPipelineController: ObservableObject {
     @Published private(set) var hasRenderedFrame = false
     @Published private(set) var previewImage: CIImage?
     @Published var renderErrorMessage: String?
+    @Published private(set) var latestOutputSize = CGSize(width: 1080, height: 1920)
 
     let cameraManager: SoraCameraManager
     let renderer: SoraPreviewRenderer
@@ -21,7 +22,6 @@ final class CameraPipelineController: ObservableObject {
     @MainActor private var pendingFrame: SoraFrame?
     @MainActor private var pendingSettings = SoraFilterSettings()
     @MainActor private var pendingShowOriginal = false
-    @MainActor private var latestOutputSize = CGSize(width: 1080, height: 1920)
 
     init(
         cameraManager: SoraCameraManager = SoraCameraManager(),
@@ -54,17 +54,25 @@ final class CameraPipelineController: ObservableObject {
     }
 
     @MainActor
-    func start() {
-        cameraManager.startSession()
+    var recordUnavailableReason: String? {
+        if authorizationStatus != .authorized { return "Camera access is required." }
+        if !cameraManager.isRunning { return "Camera is still starting." }
+        if !hasRenderedFrame { return "Wait for the live preview." }
+        if let sessionError = cameraManager.sessionErrorMessage { return sessionError }
+        if let renderErrorMessage { return renderErrorMessage }
+        if case .saving = appState?.recordingState { return "Previous clip is still saving." }
+        return nil
     }
 
-    func stop() {
-        cameraManager.stopSession()
-    }
+    @MainActor
+    var canRecord: Bool { recordUnavailableReason == nil }
 
-    func requestPermission() {
-        cameraManager.requestAuthorization()
-    }
+    @MainActor
+    func start() { cameraManager.startSession() }
+
+    func stop() { cameraManager.stopSession() }
+
+    func requestPermission() { cameraManager.requestAuthorization() }
 
     @MainActor
     func selectLens(_ lens: SoraLensMode) {
@@ -83,9 +91,15 @@ final class CameraPipelineController: ObservableObject {
 
         if appState.isRecording {
             recordingCoordinator.stopRecording()
-        } else {
-            recordingCoordinator.startRecording(outputSize: latestOutputSize, frameRate: 30)
+            return
         }
+
+        if let reason = recordUnavailableReason {
+            appState.showToast("Cannot start", message: reason)
+            return
+        }
+
+        recordingCoordinator.startRecording(outputSize: latestOutputSize, frameRate: 30)
     }
 
     @MainActor
@@ -140,9 +154,7 @@ final class CameraPipelineController: ObservableObject {
     }
 
     private static func normalizedOutputSize(for extent: CGRect) -> CGSize {
-        guard extent.width > 0, extent.height > 0 else {
-            return CGSize(width: 1080, height: 1920)
-        }
+        guard extent.width > 0, extent.height > 0 else { return CGSize(width: 1080, height: 1920) }
 
         func even(_ value: CGFloat) -> CGFloat {
             let rounded = max(2, Int(value.rounded()))
@@ -195,12 +207,17 @@ struct CameraView: View {
                 }
 
                 if !pipeline.recordingCoordinator.recentRecordings.isEmpty {
-                    MiniGalleryStrip(urls: pipeline.recordingCoordinator.recentRecordings)
-                        .padding(.horizontal, 16)
+                    MiniGalleryStrip(
+                        urls: pipeline.recordingCoordinator.recentRecordings,
+                        onSelect: { url in appState.showToast("Recent clip", message: url.lastPathComponent) }
+                    )
+                    .padding(.horizontal, 16)
                 }
 
                 ControlsOverlay(
                     coordinator: pipeline.recordingCoordinator,
+                    isRecordDisabled: !pipeline.canRecord && !appState.isRecording,
+                    recordUnavailableReason: pipeline.recordUnavailableReason,
                     toggleRecording: pipeline.toggleRecording,
                     openFilters: { appState.isFilterStudioOpen = true }
                 )
@@ -210,9 +227,7 @@ struct CameraView: View {
                 VStack {
                     Spacer()
                     SoraToastView(toast: toast) {
-                        if appState.toast?.id == toast.id {
-                            appState.toast = nil
-                        }
+                        if appState.toast?.id == toast.id { appState.toast = nil }
                     }
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -223,8 +238,14 @@ struct CameraView: View {
                 .environmentObject(appState)
         }
         .sheet(isPresented: $appState.isSettingsOpen) {
-            SettingsSheet(coordinator: pipeline.recordingCoordinator)
-                .environmentObject(appState)
+            SettingsSheet(
+                coordinator: pipeline.recordingCoordinator,
+                cameraManager: pipeline.cameraManager,
+                hasRenderedFrame: pipeline.hasRenderedFrame,
+                latestOutputSize: pipeline.latestOutputSize,
+                renderErrorMessage: pipeline.renderErrorMessage
+            )
+            .environmentObject(appState)
         }
         .sheet(
             item: Binding(
@@ -232,9 +253,11 @@ struct CameraView: View {
                 set: { pipeline.recordingCoordinator.saveResult = $0 }
             )
         ) { result in
-            SaveResultSheet(result: result) {
-                pipeline.recordingCoordinator.dismissSaveResult()
-            }
+            SaveResultSheet(
+                result: result,
+                onDismiss: { pipeline.recordingCoordinator.dismissSaveResult() },
+                onRecordAgain: { pipeline.recordingCoordinator.dismissSaveResult() }
+            )
         }
         .onAppear {
             Task { @MainActor in
@@ -243,13 +266,9 @@ struct CameraView: View {
                 pipeline.start()
             }
         }
-        .onDisappear {
-            pipeline.stop()
-        }
+        .onDisappear { pipeline.stop() }
         .onReceive(pipeline.cameraManager.$currentLens) { lens in
-            if appState.lensMode != lens {
-                appState.lensMode = lens
-            }
+            if appState.lensMode != lens { appState.lensMode = lens }
         }
     }
 
@@ -257,10 +276,7 @@ struct CameraView: View {
     private var previewContent: some View {
         ZStack {
             MetalPreviewView(
-                image: Binding(
-                    get: { pipeline.previewImage },
-                    set: { _ in }
-                ),
+                image: Binding(get: { pipeline.previewImage }, set: { _ in }),
                 errorMessage: $pipeline.renderErrorMessage
             )
             .ignoresSafeArea()
