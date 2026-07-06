@@ -177,6 +177,52 @@ final class CameraPipelineController: ObservableObject {
 }
 
 struct CameraView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
+    @State private var isRequestingPermission = false
+
+    var body: some View {
+        Group {
+            if authorizationStatus == .authorized {
+                AuthorizedCameraView()
+            } else {
+                CameraPermissionView(
+                    action: handlePermissionAction,
+                    isDenied: authorizationStatus == .denied || authorizationStatus == .restricted
+                )
+            }
+        }
+        .onAppear {
+            refreshAuthorizationStatus()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                refreshAuthorizationStatus()
+            }
+        }
+    }
+
+    private func handlePermissionAction() {
+        if authorizationStatus == .notDetermined {
+            guard !isRequestingPermission else { return }
+            isRequestingPermission = true
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    isRequestingPermission = false
+                    authorizationStatus = granted ? .authorized : .denied
+                }
+            }
+        } else if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsURL)
+        }
+    }
+
+    private func refreshAuthorizationStatus() {
+        authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
+    }
+}
+
+private struct AuthorizedCameraView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var pipeline = CameraPipelineController()
@@ -188,48 +234,38 @@ struct CameraView: View {
         GeometryReader { proxy in
             ZStack {
                 Color.black.ignoresSafeArea()
+                previewContent
 
-                if pipeline.authorizationStatus == .authorized {
-                    previewContent
-                } else {
-                    CameraPermissionView(
-                        action: handlePermissionAction,
-                        isDenied: pipeline.authorizationStatus == .denied || pipeline.authorizationStatus == .restricted
-                    )
-                }
-
-                if pipeline.authorizationStatus == .authorized {
-                    VStack(spacing: 0) {
-                        SoraHeader(cameraManager: pipeline.cameraManager) { lens in
-                            pipeline.selectLens(lens)
-                        } selectQuality: { mode in
-                            pipeline.selectQuality(mode)
-                        } openSettings: {
-                            appState.isSettingsOpen = true
-                        }
-                        .padding(.top, max(proxy.safeAreaInsets.top, 12))
-
-                        Spacer(minLength: 0)
-
-                        VStack(spacing: 10) {
-                            if appState.isRecording || appState.recordingState == .saving {
-                                RecordingHUD(
-                                    state: appState.recordingState,
-                                    onRecordTapped: pipeline.toggleRecording,
-                                    onStopTapped: pipeline.toggleRecording
-                                )
-                                .padding(.horizontal, 16)
-                            }
-
-                            ControlsOverlay(
-                                coordinator: pipeline.recordingCoordinator,
-                                showOriginal: $pipeline.showOriginal,
-                                toggleRecording: pipeline.toggleRecording,
-                                openFilters: { appState.isFilterStudioOpen = true }
-                            )
-                        }
-                        .padding(.bottom, max(proxy.safeAreaInsets.bottom, 10))
+                VStack(spacing: 0) {
+                    SoraHeader(cameraManager: pipeline.cameraManager) { lens in
+                        pipeline.selectLens(lens)
+                    } selectQuality: { mode in
+                        pipeline.selectQuality(mode)
+                    } openSettings: {
+                        appState.isSettingsOpen = true
                     }
+                    .padding(.top, max(proxy.safeAreaInsets.top, 12))
+
+                    Spacer(minLength: 0)
+
+                    VStack(spacing: 10) {
+                        if appState.isRecording || appState.recordingState == .saving {
+                            RecordingHUD(
+                                state: appState.recordingState,
+                                onRecordTapped: pipeline.toggleRecording,
+                                onStopTapped: pipeline.toggleRecording
+                            )
+                            .padding(.horizontal, 16)
+                        }
+
+                        ControlsOverlay(
+                            coordinator: pipeline.recordingCoordinator,
+                            showOriginal: $pipeline.showOriginal,
+                            toggleRecording: pipeline.toggleRecording,
+                            openFilters: { appState.isFilterStudioOpen = true }
+                        )
+                    }
+                    .padding(.bottom, max(proxy.safeAreaInsets.bottom, 10))
                 }
 
                 if let toast = appState.toast {
@@ -270,7 +306,6 @@ struct CameraView: View {
         .onAppear {
             Task { @MainActor in
                 pipeline.bind(appState: appState)
-                pipeline.cameraManager.refreshAuthorizationStatus()
                 appState.lensMode = pipeline.cameraManager.currentLens
                 scheduleCameraStartIfReady()
             }
@@ -287,25 +322,8 @@ struct CameraView: View {
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
-                pipeline.cameraManager.refreshAuthorizationStatus()
                 scheduleCameraStartIfReady()
             case .inactive, .background:
-                pendingStartTask?.cancel()
-                pendingStartTask = nil
-                pendingProcessingTask?.cancel()
-                pendingProcessingTask = nil
-                pipeline.setFrameProcessingEnabled(false)
-                pipeline.stop()
-                hasStartedSession = false
-            @unknown default:
-                break
-            }
-        }
-        .onReceive(pipeline.cameraManager.$authorizationStatus) { status in
-            switch status {
-            case .authorized:
-                scheduleCameraStartIfReady()
-            case .denied, .restricted, .notDetermined:
                 pendingStartTask?.cancel()
                 pendingStartTask = nil
                 pendingProcessingTask?.cancel()
@@ -330,7 +348,7 @@ struct CameraView: View {
     private var previewContent: some View {
         ZStack {
             CameraSessionPreviewView(session: pipeline.cameraManager.previewSession)
-            .ignoresSafeArea()
+                .ignoresSafeArea()
 
             if !pipeline.showOriginal, pipeline.previewImage != nil {
                 MetalPreviewView(
@@ -364,14 +382,6 @@ struct CameraView: View {
         }
     }
 
-    private func handlePermissionAction() {
-        if pipeline.authorizationStatus == .notDetermined {
-            pipeline.requestPermission()
-        } else if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-            UIApplication.shared.open(settingsURL)
-        }
-    }
-
     private func errorCard(title: String, message: String) -> some View {
         VStack(spacing: 8) {
             Text(title)
@@ -388,7 +398,6 @@ struct CameraView: View {
     }
 
     private func scheduleCameraStartIfReady() {
-        guard pipeline.authorizationStatus == .authorized else { return }
         guard scenePhase == .active else { return }
         guard !hasStartedSession else { return }
 
@@ -397,7 +406,6 @@ struct CameraView: View {
             try? await Task.sleep(for: .milliseconds(350))
             guard !Task.isCancelled else { return }
             guard scenePhase == .active else { return }
-            guard pipeline.authorizationStatus == .authorized else { return }
             guard !hasStartedSession else { return }
 
             hasStartedSession = true
@@ -414,7 +422,6 @@ struct CameraView: View {
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
             guard scenePhase == .active else { return }
-            guard pipeline.authorizationStatus == .authorized else { return }
             guard hasStartedSession else { return }
 
             pipeline.setFrameProcessingEnabled(true)
