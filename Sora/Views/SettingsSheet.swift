@@ -10,9 +10,9 @@ struct SettingsSheet: View {
             List {
                 Section("Privacy") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Local-only processing")
+                        Text("On-device processing")
                             .font(.headline)
-                        Text("Sora processes camera frames on-device and does not use networking.")
+                        Text("Sora refines frames locally on-device and saves results through the existing local Photos flow. No frame upload or remote processing is part of the current app path.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -24,7 +24,7 @@ struct SettingsSheet: View {
                         QualityModeButton(onSelect: onSelectQuality)
                             .environmentObject(appState)
 
-                        Text("Current build uses stable 1080p30. Quality mode is limited while the recorder remains on the stable path.")
+                        Text("Current build prioritizes stable real-time capture. Beauty refinement stays inside the local preview pipeline and quality mode remains constrained by the current recorder path.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -48,6 +48,10 @@ struct SettingsSheet: View {
                 }
 
                 Section("Filters") {
+                    Text("Current controls cover skin refinement, soft glow, tonal definition, and preset looks. Body contouring is not part of the shipped filter stack.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
                     Button("Reset filters") {
                         appState.resetFilters()
                     }

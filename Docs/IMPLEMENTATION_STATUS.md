@@ -1,7 +1,7 @@
 # Implementation Status
 
 ## Product Goal
-Integrate a native-feeling iOS camera-style Sora interface with real iOS 26 Liquid Glass where available, clear fallback materials where unavailable, actual capture/filter/settings/save controls, and no recording or camera behavior regressions.
+Ship a local beauty-retouching camera/editor pass for Sora with realistic skin refinement, texture-preserving glow, clearer privacy language, and no recording or camera behavior regressions.
 
 ## Requirements
 - [x] App architecture exists
@@ -27,7 +27,16 @@ Integrate a native-feeling iOS camera-style Sora interface with real iOS 26 Liqu
 - [x] Compare original toggle exposed as a real control
 - [x] Save feedback refreshed
 - [x] Settings screen aligned with new chrome direction
+- [x] Retouching labels rewritten around refine / glow / definition
+- [x] Presets retuned toward local beauty refinement
+- [x] Privacy copy rewritten around factual on-device processing
 - [x] Prototypes retained for reference
+
+## Deferred Scope
+- [ ] Body contouring / silhouette shaping engine
+- [ ] Person segmentation or tracked landmarks
+- [ ] Temporal warp stabilization for contour editing
+- [ ] UI controls for shaping or geometry edits
 
 ## Verification Notes
 - Build and runtime verification are pending because this Windows environment does not have the Apple `swift` toolchain or Xcode available.

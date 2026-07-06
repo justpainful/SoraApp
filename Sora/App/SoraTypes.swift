@@ -15,8 +15,8 @@ struct SoraFrame {
 }
 
 struct SoraFilterSettings: Equatable {
-    var smooth: Float = 0.35
-    var glow: Float = 0.20
+    var smooth: Float = 0.22
+    var glow: Float = 0.08
     var contrast: Float = 0.15
     var preset: SoraPreset = .natural
 }
@@ -25,7 +25,7 @@ enum SoraPreset: String, CaseIterable, Identifiable {
     case natural = "Natural"
     case clean = "Clean"
     case soft = "Soft"
-    case cinematic = "Cinematic"
+    case cinematic = "Studio"
 
     var id: String { rawValue }
 }

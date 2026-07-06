@@ -77,7 +77,7 @@ struct FilterStudioSheet: View {
 
             VStack(spacing: 20) {
                 SoraSlider(
-                    title: "Smooth",
+                    title: "Refine",
                     value: Binding(
                         get: { appState.filterSettings.smooth },
                         set: { appState.filterSettings.smooth = $0 }
@@ -93,7 +93,7 @@ struct FilterStudioSheet: View {
                 )
 
                 SoraSlider(
-                    title: "Contrast",
+                    title: "Definition",
                     value: Binding(
                         get: { appState.filterSettings.contrast },
                         set: { appState.filterSettings.contrast = $0 }
@@ -101,6 +101,12 @@ struct FilterStudioSheet: View {
                 )
             }
             .padding(.horizontal, 22)
+
+            Text("Refine keeps edges and highlights intact while softening harsh texture.")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.66))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 22)
             .padding(.bottom, 22)
 
             Divider()
@@ -132,21 +138,21 @@ struct FilterStudioSheet: View {
 
         switch preset {
         case .natural:
-            appState.filterSettings.smooth = 0.35
-            appState.filterSettings.glow = 0.20
+            appState.filterSettings.smooth = 0.22
+            appState.filterSettings.glow = 0.08
             appState.filterSettings.contrast = 0.15
         case .clean:
-            appState.filterSettings.smooth = 0.30
-            appState.filterSettings.glow = 0.10
-            appState.filterSettings.contrast = 0.25
+            appState.filterSettings.smooth = 0.38
+            appState.filterSettings.glow = 0.12
+            appState.filterSettings.contrast = 0.28
         case .soft:
             appState.filterSettings.smooth = 0.60
-            appState.filterSettings.glow = 0.40
-            appState.filterSettings.contrast = 0.05
+            appState.filterSettings.glow = 0.24
+            appState.filterSettings.contrast = 0.12
         case .cinematic:
-            appState.filterSettings.smooth = 0.25
-            appState.filterSettings.glow = 0.15
-            appState.filterSettings.contrast = 0.30
+            appState.filterSettings.smooth = 0.34
+            appState.filterSettings.glow = 0.28
+            appState.filterSettings.contrast = 0.38
         }
     }
 
