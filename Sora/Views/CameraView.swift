@@ -23,6 +23,7 @@ final class CameraPipelineController: ObservableObject {
     @MainActor private var pendingShowOriginal = false
     @MainActor private var latestOutputSize = CGSize(width: 1080, height: 1920)
 
+    @MainActor
     init(
         cameraManager: SoraCameraManager = SoraCameraManager(),
         processor: SoraImageProcessing = SoraFilterProcessor(),
