@@ -180,24 +180,29 @@ struct CameraView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
     @State private var isRequestingPermission = false
+    @State private var isPresentingAuthorizedCamera = false
 
     var body: some View {
         Group {
-            if authorizationStatus == .authorized {
+            if isPresentingAuthorizedCamera {
                 AuthorizedCameraView()
             } else {
                 CameraPermissionView(
                     action: handlePermissionAction,
-                    isDenied: authorizationStatus == .denied || authorizationStatus == .restricted
+                    isDenied: authorizationStatus == .denied || authorizationStatus == .restricted,
+                    isLoading: authorizationStatus == .authorized
                 )
             }
         }
+        .ignoresSafeArea()
         .onAppear {
             refreshAuthorizationStatus()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 refreshAuthorizationStatus()
+            } else if phase == .inactive || phase == .background {
+                isPresentingAuthorizedCamera = false
             }
         }
     }
@@ -210,6 +215,7 @@ struct CameraView: View {
                 DispatchQueue.main.async {
                     isRequestingPermission = false
                     authorizationStatus = granted ? .authorized : .denied
+                    updateAuthorizedPresentation()
                 }
             }
         } else if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
@@ -219,6 +225,11 @@ struct CameraView: View {
 
     private func refreshAuthorizationStatus() {
         authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
+        updateAuthorizedPresentation()
+    }
+
+    private func updateAuthorizedPresentation() {
+        isPresentingAuthorizedCamera = authorizationStatus == .authorized && scenePhase == .active
     }
 }
 
@@ -231,56 +242,54 @@ private struct AuthorizedCameraView: View {
     @State private var pendingProcessingTask: Task<Void, Never>?
 
     var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                Color.black.ignoresSafeArea()
-                previewContent
+        ZStack {
+            Color.black.ignoresSafeArea()
+            previewContent
 
-                VStack(spacing: 0) {
-                    SoraHeader(cameraManager: pipeline.cameraManager) { lens in
-                        pipeline.selectLens(lens)
-                    } selectQuality: { mode in
-                        pipeline.selectQuality(mode)
-                    } openSettings: {
-                        appState.isSettingsOpen = true
-                    }
-                    .padding(.top, max(proxy.safeAreaInsets.top, 12))
-
+            if let toast = appState.toast {
+                VStack {
                     Spacer(minLength: 0)
-
-                    VStack(spacing: 10) {
-                        if appState.isRecording || appState.recordingState == .saving {
-                            RecordingHUD(
-                                state: appState.recordingState,
-                                onRecordTapped: pipeline.toggleRecording,
-                                onStopTapped: pipeline.toggleRecording
-                            )
-                            .padding(.horizontal, 16)
+                    SoraToastView(toast: toast) {
+                        if appState.toast?.id == toast.id {
+                            appState.toast = nil
                         }
-
-                        ControlsOverlay(
-                            coordinator: pipeline.recordingCoordinator,
-                            showOriginal: $pipeline.showOriginal,
-                            toggleRecording: pipeline.toggleRecording,
-                            openFilters: { appState.isFilterStudioOpen = true }
-                        )
                     }
-                    .padding(.bottom, max(proxy.safeAreaInsets.bottom, 10))
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 108)
                 }
-
-                if let toast = appState.toast {
-                    VStack {
-                        Spacer()
-                        SoraToastView(toast: toast) {
-                            if appState.toast?.id == toast.id {
-                                appState.toast = nil
-                            }
-                        }
-                        .padding(.bottom, max(proxy.safeAreaInsets.bottom, 10))
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+        }
+        .ignoresSafeArea()
+        .safeAreaInset(edge: .top, spacing: 0) {
+            SoraHeader(cameraManager: pipeline.cameraManager) { lens in
+                pipeline.selectLens(lens)
+            } selectQuality: { mode in
+                pipeline.selectQuality(mode)
+            } openSettings: {
+                appState.isSettingsOpen = true
+            }
+            .padding(.top, 8)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 10) {
+                if appState.isRecording || appState.recordingState == .saving {
+                    RecordingHUD(
+                        state: appState.recordingState,
+                        onRecordTapped: pipeline.toggleRecording,
+                        onStopTapped: pipeline.toggleRecording
+                    )
+                    .padding(.horizontal, 16)
+                }
+
+                ControlsOverlay(
+                    coordinator: pipeline.recordingCoordinator,
+                    showOriginal: $pipeline.showOriginal,
+                    toggleRecording: pipeline.toggleRecording,
+                    openFilters: { appState.isFilterStudioOpen = true }
+                )
+            }
+            .padding(.bottom, 8)
         }
         .sheet(isPresented: $appState.isFilterStudioOpen) {
             FilterStudioSheet(showOriginal: $pipeline.showOriginal)

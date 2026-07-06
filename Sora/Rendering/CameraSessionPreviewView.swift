@@ -24,7 +24,7 @@ struct CameraSessionPreviewView: UIViewRepresentable {
         }
 
         var previewLayer: AVCaptureVideoPreviewLayer {
-            (layer as? AVCaptureVideoPreviewLayer) ?? AVCaptureVideoPreviewLayer()
+            layer as! AVCaptureVideoPreviewLayer
         }
     }
 }
