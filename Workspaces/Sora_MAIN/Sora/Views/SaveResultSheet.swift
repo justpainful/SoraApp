@@ -3,6 +3,7 @@ import SwiftUI
 struct SaveResultSheet: View {
     let result: SaveResult
     var onDismiss: (() -> Void)?
+    var onRecordAgain: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 20) {
@@ -34,20 +35,39 @@ struct SaveResultSheet: View {
                         .font(.system(.footnote, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.9))
                         .multilineTextAlignment(.center)
+                        .lineLimit(2)
+
+                    ShareLink(item: localURL) {
+                        Label("Share clip", systemImage: "square.and.arrow.up")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.top, 4)
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity)
                 .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
 
-            Button("Done") {
-                onDismiss?()
+            HStack(spacing: 12) {
+                Button("Dismiss") {
+                    onDismiss?()
+                }
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                Button("Record Again") {
+                    onRecordAgain?()
+                }
+                .font(.headline)
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
-            .font(.headline)
-            .foregroundStyle(.black)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .padding(24)
         .background(
@@ -85,14 +105,14 @@ struct SaveResultSheet: View {
         case .success:
             return "Saved"
         case .failure:
-            return "Couldn't Save"
+            return "Could not save"
         }
     }
 
     private var message: String {
         switch result {
         case .success:
-            return "Your video is ready locally and has been sent to Photos."
+            return "Your clip was saved locally and sent to Photos. You can record another clip now."
         case .failure(let message):
             return message
         }
