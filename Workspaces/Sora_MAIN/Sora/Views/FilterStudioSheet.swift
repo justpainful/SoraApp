@@ -13,14 +13,12 @@ struct FilterStudioSheet: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Drag indicator (Grabber)
             Capsule()
                 .fill(Color.white.opacity(0.18))
                 .frame(width: 36, height: 4)
                 .padding(.top, 8)
                 .padding(.bottom, 12)
             
-            // Header
             HStack {
                 Button(action: {
                     triggerHapticNotification(style: .success)
@@ -61,16 +59,13 @@ struct FilterStudioSheet: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 16)
             
-            // Horizontal scroll for presets
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(SoraPreset.allCases) { preset in
                         PresetPill(
                             title: preset.rawValue.uppercased(),
                             isSelected: appState.filterSettings.preset == preset,
-                            action: {
-                                selectPreset(preset)
-                            }
+                            action: { selectPreset(preset) }
                         )
                     }
                 }
@@ -78,41 +73,37 @@ struct FilterStudioSheet: View {
             }
             .padding(.bottom, 22)
             
-            // Sliders list
             VStack(spacing: 20) {
                 SoraSlider(
                     title: "Smooth",
-                    value: Binding(
-                        get: { appState.filterSettings.smooth },
-                        set: { appState.filterSettings.smooth = $0 }
-                    )
+                    value: Binding(get: { appState.filterSettings.smooth }, set: { appState.filterSettings.smooth = $0 })
                 )
                 
                 SoraSlider(
                     title: "Glow",
-                    value: Binding(
-                        get: { appState.filterSettings.glow },
-                        set: { appState.filterSettings.glow = $0 }
-                    )
+                    value: Binding(get: { appState.filterSettings.glow }, set: { appState.filterSettings.glow = $0 })
                 )
                 
                 SoraSlider(
                     title: "Contrast",
-                    value: Binding(
-                        get: { appState.filterSettings.contrast },
-                        set: { appState.filterSettings.contrast = $0 }
-                    )
+                    value: Binding(get: { appState.filterSettings.contrast }, set: { appState.filterSettings.contrast = $0 })
                 )
             }
             .padding(.horizontal, 22)
-            .padding(.bottom, 22)
+            .padding(.bottom, 14)
+
+            Text("Hold Before/After to compare the preview. Saved clips still use the Sora Look settings.")
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.white.opacity(0.55))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 14)
             
             Divider()
                 .background(Color.white.opacity(0.08))
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)
             
-            // Before/After comparison button
             BeforeAfterButton(showOriginal: $showOriginal)
                 .padding(.bottom, 16)
         }
@@ -121,12 +112,9 @@ struct FilterStudioSheet: View {
             Color(red: 0.02, green: 0.04, blue: 0.08)
                 .ignoresSafeArea()
         )
-        // Set standard detents for native look
-        .presentationDetents([.height(355), .medium])
+        .presentationDetents([.height(390), .medium])
         .presentationBackground(.ultraThinMaterial)
     }
-    
-    // MARK: - Preset Selection Defaults
     
     private func selectPreset(_ preset: SoraPreset) {
         appState.filterSettings.preset = preset
@@ -164,7 +152,6 @@ struct FilterStudioSheet: View {
     }
 }
 
-// MARK: - Previews
 #Preview {
     ZStack {
         Color.black.ignoresSafeArea()
