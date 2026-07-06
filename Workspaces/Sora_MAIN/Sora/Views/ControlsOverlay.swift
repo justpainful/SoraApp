@@ -3,6 +3,8 @@ import SwiftUI
 struct ControlsOverlay: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject var coordinator: RecordingCoordinator
+    let isRecordDisabled: Bool
+    let recordUnavailableReason: String?
     let toggleRecording: () -> Void
     let openFilters: () -> Void
 
@@ -12,6 +14,13 @@ struct ControlsOverlay: View {
                 Text(message)
                     .font(.footnote)
                     .foregroundStyle(SoraTheme.textPrimary)
+                    .padding(12)
+                    .soraPanel()
+                    .padding(.horizontal, 16)
+            } else if isRecordDisabled, let reason = recordUnavailableReason {
+                Text(reason)
+                    .font(.footnote)
+                    .foregroundStyle(SoraTheme.textSecondary)
                     .padding(12)
                     .soraPanel()
                     .padding(.horizontal, 16)
@@ -51,7 +60,8 @@ struct ControlsOverlay: View {
                 Spacer()
                 RecordButton(
                     isRecording: appState.isRecording,
-                    isDisabled: appState.recordingState == .saving
+                    isDisabled: isRecordDisabled || appState.recordingState == .saving,
+                    disabledReason: recordUnavailableReason
                 ) {
                     toggleRecording()
                 }
