@@ -22,6 +22,7 @@ final class CameraPipelineController: ObservableObject {
     @MainActor private var pendingSettings = SoraFilterSettings()
     @MainActor private var pendingShowOriginal = false
     @MainActor private var latestOutputSize = CGSize(width: 1080, height: 1920)
+    @MainActor private var isFrameProcessingEnabled = false
 
     @MainActor
     init(
@@ -90,13 +91,29 @@ final class CameraPipelineController: ObservableObject {
         if appState.isRecording {
             recordingCoordinator.stopRecording()
         } else {
+            isFrameProcessingEnabled = true
             recordingCoordinator.startRecording(outputSize: latestOutputSize, frameRate: 30)
         }
     }
 
     @MainActor
+    func setFrameProcessingEnabled(_ enabled: Bool) {
+        isFrameProcessingEnabled = enabled
+    }
+
+    @MainActor
     private func receive(_ frame: SoraFrame) {
         guard let appState else { return }
+
+        latestOutputSize = Self.normalizedOutputSize(for: frame.ciImage.extent)
+
+        guard isFrameProcessingEnabled else {
+            if showOriginal {
+                previewImage = frame.ciImage
+                renderer.render(frame.ciImage)
+            }
+            return
+        }
 
         let settings = appState.filterSettings
         let showOriginal = self.showOriginal
@@ -165,6 +182,7 @@ struct CameraView: View {
     @StateObject private var pipeline = CameraPipelineController()
     @State private var hasStartedSession = false
     @State private var pendingStartTask: Task<Void, Never>?
+    @State private var pendingProcessingTask: Task<Void, Never>?
 
     var body: some View {
         GeometryReader { proxy in
@@ -260,6 +278,9 @@ struct CameraView: View {
         .onDisappear {
             pendingStartTask?.cancel()
             pendingStartTask = nil
+            pendingProcessingTask?.cancel()
+            pendingProcessingTask = nil
+            pipeline.setFrameProcessingEnabled(false)
             pipeline.stop()
             hasStartedSession = false
         }
@@ -271,6 +292,9 @@ struct CameraView: View {
             case .inactive, .background:
                 pendingStartTask?.cancel()
                 pendingStartTask = nil
+                pendingProcessingTask?.cancel()
+                pendingProcessingTask = nil
+                pipeline.setFrameProcessingEnabled(false)
                 pipeline.stop()
                 hasStartedSession = false
             @unknown default:
@@ -284,6 +308,9 @@ struct CameraView: View {
             case .denied, .restricted, .notDetermined:
                 pendingStartTask?.cancel()
                 pendingStartTask = nil
+                pendingProcessingTask?.cancel()
+                pendingProcessingTask = nil
+                pipeline.setFrameProcessingEnabled(false)
                 pipeline.stop()
                 hasStartedSession = false
             @unknown default:
@@ -375,6 +402,22 @@ struct CameraView: View {
 
             hasStartedSession = true
             pipeline.start()
+            scheduleProcessingEnable()
+        }
+    }
+
+    private func scheduleProcessingEnable() {
+        pendingProcessingTask?.cancel()
+        pipeline.setFrameProcessingEnabled(false)
+
+        pendingProcessingTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            guard scenePhase == .active else { return }
+            guard pipeline.authorizationStatus == .authorized else { return }
+            guard hasStartedSession else { return }
+
+            pipeline.setFrameProcessingEnabled(true)
         }
     }
 }
