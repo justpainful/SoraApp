@@ -34,6 +34,8 @@ Ship a local beauty-retouching camera/editor pass for Sora with realistic skin r
 - [x] Camera screen reset away from dashboard styling toward camera-first chrome
 - [x] Blue gradient-heavy presentation removed from primary camera surfaces
 - [x] Camera lifecycle tightened to stop/start with scene activity changes
+- [x] Root launch crash traced to missing privacy keys in the built app bundle
+- [x] Build configuration updated to inject camera and photo-library usage descriptions explicitly
 
 ## Deferred Scope
 - [ ] Body contouring / silhouette shaping engine
@@ -42,6 +44,8 @@ Ship a local beauty-retouching camera/editor pass for Sora with realistic skin r
 - [ ] UI controls for shaping or geometry edits
 
 ## Verification Notes
-- Local Xcode verification is still unavailable on this Windows host, but the GitHub macOS workflow completed successfully for the current branch.
-- Git integration verification succeeded on branch `feature/liquid-glass-ui-prototype`.
-- Launch-crash diagnosis is currently code-level plus lifecycle hardening; fresh runtime proof still needs the next GitHub/Apple lane or a device install because local Simulator tooling is unavailable on this host.
+- Local Xcode verification is still unavailable on this Windows host.
+- The latest device crash report `C:\Users\kuroi\Downloads\Sora-2026-07-06-061145.ips` confirms a TCC termination caused by missing `NSCameraUsageDescription` in the installed app bundle.
+- The source plist already contained the privacy keys, but the last built artifact at `artifacts/run-28799301646/build-output/SoraProbe.app/Info.plist` did not. This means the failure was in build configuration, not camera runtime logic.
+- `project.yml` now injects `NSCameraUsageDescription` and `NSPhotoLibraryAddUsageDescription` directly through build settings and removes the duplicate `info` declaration that could interfere with plist generation.
+- Fresh runtime proof still requires one new GitHub macOS build and a reinstall of that new IPA on device.
