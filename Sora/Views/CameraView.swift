@@ -54,6 +54,7 @@ final class CameraPipelineController: ObservableObject {
 
     @MainActor
     func start() {
+        guard cameraManager.authorizationStatus == .authorized else { return }
         cameraManager.startSession()
     }
 

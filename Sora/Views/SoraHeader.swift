@@ -10,25 +10,37 @@ struct SoraHeader: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 12) {
-                Menu {
-                    ForEach(SoraQualityMode.allCases) { mode in
-                        Button {
-                            selectQuality(mode)
-                        } label: {
-                            Label(mode == .performance ? "Performance" : "Quality", systemImage: mode == .performance ? "speedometer" : "sparkles")
+            ZStack {
+                HStack {
+                    Menu {
+                        ForEach(SoraQualityMode.allCases) { mode in
+                            Button {
+                                selectQuality(mode)
+                            } label: {
+                                Label(mode == .performance ? "Performance" : "Quality", systemImage: mode == .performance ? "speedometer" : "sparkles")
+                            }
                         }
+                    } label: {
+                        Image(systemName: appState.qualityMode == .performance ? "speedometer" : "sparkles")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
                     }
-                } label: {
-                    Image(systemName: appState.qualityMode == .performance ? "speedometer" : "sparkles")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 44, height: 44)
-                }
-                .soraGlassCircle(interactive: true, fallbackStrokeOpacity: 0.08)
-                .accessibilityLabel("Quality mode")
+                    .soraGlassCircle(interactive: true, fallbackStrokeOpacity: 0.08)
+                    .accessibilityLabel("Quality mode")
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
+
+                    Button(action: openSettings) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .soraGlassCircle(interactive: true, fallbackStrokeOpacity: 0.08)
+                    .accessibilityLabel("Settings")
+                }
 
                 SoraGlassContainer(spacing: 8) {
                     HStack(spacing: 8) {
@@ -60,19 +72,8 @@ struct SoraHeader: View {
                         }
                     }
                 }
-
-                Spacer(minLength: 0)
-
-                Button(action: openSettings) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .soraGlassCircle(interactive: true, fallbackStrokeOpacity: 0.08)
-                .accessibilityLabel("Settings")
             }
+            .frame(maxWidth: .infinity)
 
             if appState.recordingState != .idle {
                 HStack(spacing: 8) {

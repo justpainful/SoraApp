@@ -66,35 +66,33 @@ struct ControlsOverlay: View {
             }
             .padding(.horizontal, 18)
 
-            HStack(alignment: .center) {
-                if let latestRecording = coordinator.recentRecordings.first {
-                    ShareLink(item: latestRecording) {
+            ZStack {
+                HStack {
+                    if let latestRecording = coordinator.recentRecordings.first {
+                        ShareLink(item: latestRecording) {
+                            actionButton(systemImage: "photo.on.rectangle.angled")
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Share latest recording")
+                    } else {
                         actionButton(systemImage: "photo.on.rectangle.angled")
+                            .opacity(0.45)
+                            .accessibilityHidden(true)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Button(action: openFilters) {
+                        actionButton(systemImage: "slider.horizontal.3")
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Share latest recording")
-                } else {
-                    actionButton(systemImage: "photo.on.rectangle.angled")
-                        .opacity(0.45)
-                        .accessibilityHidden(true)
                 }
-
-                Spacer(minLength: 18)
 
                 RecordButton(
                     isRecording: appState.isRecording,
                     isDisabled: appState.recordingState == .saving
                 ) {
                     toggleRecording()
-                }
-
-                Spacer(minLength: 18)
-
-                SoraGlassContainer(spacing: 10) {
-                    Button(action: openFilters) {
-                        actionButton(systemImage: "slider.horizontal.3")
-                    }
-                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 16)
