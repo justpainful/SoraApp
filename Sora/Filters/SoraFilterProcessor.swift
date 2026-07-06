@@ -50,8 +50,8 @@ final class SoraFilterProcessor: SoraImageProcessing {
 
         let detailRecovery = sharpen(
             image: toneEvenedImage,
-            radius: 0.45 + intensity * 0.9,
-            intensity: 0.18 + intensity * 0.24
+            radius: 0.45 + Double(intensity) * 0.9,
+            intensity: 0.18 + Double(intensity) * 0.24
         )
 
         let softenedRefinementMask = scaledMask(refinementMask, contrast: 1.2, brightness: -0.08)
