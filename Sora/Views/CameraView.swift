@@ -178,35 +178,6 @@ struct CameraView: View {
                 )
             }
 
-            VStack(spacing: 12) {
-                SoraHeader(cameraManager: pipeline.cameraManager) { lens in
-                    pipeline.selectLens(lens)
-                } selectQuality: { mode in
-                    pipeline.selectQuality(mode)
-                } openSettings: {
-                    appState.isSettingsOpen = true
-                }
-                .padding(.top, 8)
-
-                Spacer()
-
-                if appState.isRecording || appState.recordingState == .saving {
-                    RecordingHUD(
-                        state: appState.recordingState,
-                        onRecordTapped: pipeline.toggleRecording,
-                        onStopTapped: pipeline.toggleRecording
-                    )
-                    .padding(.horizontal, 16)
-                }
-
-                ControlsOverlay(
-                    coordinator: pipeline.recordingCoordinator,
-                    showOriginal: $pipeline.showOriginal,
-                    toggleRecording: pipeline.toggleRecording,
-                    openFilters: { appState.isFilterStudioOpen = true }
-                )
-            }
-
             if let toast = appState.toast {
                 VStack {
                     Spacer()
@@ -217,6 +188,40 @@ struct CameraView: View {
                     }
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .safeAreaInset(edge: .top) {
+            if pipeline.authorizationStatus == .authorized {
+                SoraHeader(cameraManager: pipeline.cameraManager) { lens in
+                    pipeline.selectLens(lens)
+                } selectQuality: { mode in
+                    pipeline.selectQuality(mode)
+                } openSettings: {
+                    appState.isSettingsOpen = true
+                }
+                .padding(.top, 6)
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if pipeline.authorizationStatus == .authorized {
+                VStack(spacing: 10) {
+                    if appState.isRecording || appState.recordingState == .saving {
+                        RecordingHUD(
+                            state: appState.recordingState,
+                            onRecordTapped: pipeline.toggleRecording,
+                            onStopTapped: pipeline.toggleRecording
+                        )
+                        .padding(.horizontal, 16)
+                    }
+
+                    ControlsOverlay(
+                        coordinator: pipeline.recordingCoordinator,
+                        showOriginal: $pipeline.showOriginal,
+                        toggleRecording: pipeline.toggleRecording,
+                        openFilters: { appState.isFilterStudioOpen = true }
+                    )
+                }
+                .padding(.bottom, 4)
             }
         }
         .sheet(isPresented: $appState.isFilterStudioOpen) {
@@ -243,6 +248,7 @@ struct CameraView: View {
         .onAppear {
             Task { @MainActor in
                 pipeline.bind(appState: appState)
+                pipeline.cameraManager.refreshAuthorizationStatus()
                 appState.lensMode = pipeline.cameraManager.currentLens
                 if !hasStartedSession {
                     hasStartedSession = true
@@ -257,6 +263,7 @@ struct CameraView: View {
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
+                pipeline.cameraManager.refreshAuthorizationStatus()
                 if pipeline.authorizationStatus == .authorized && !hasStartedSession {
                     hasStartedSession = true
                     pipeline.start()

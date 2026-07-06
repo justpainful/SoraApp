@@ -53,14 +53,33 @@ final class RecordingCoordinator: ObservableObject {
                 let url = try await recorder.stopRecording()
                 appState?.lastSavedVideoURL = url
                 insertRecent(url)
+                let saveMessage: String
 
                 if saveToPhotos {
-                    try await photoSaver.saveVideoToPhotos(url: url)
+                    do {
+                        try await photoSaver.saveVideoToPhotos(url: url)
+                        saveMessage = "Saved locally and added to Photos."
+                        appState?.showToast("Video saved")
+                    } catch let error as PhotoSavingError {
+                        switch error {
+                        case .permissionDenied:
+                            saveMessage = "Saved locally. Photo Library access was denied."
+                            appState?.showToast("Saved locally", message: "Allow Photos access if you also want automatic library saving.")
+                        case .saveFailed, .fileMissing:
+                            saveMessage = "Saved locally, but Photos export failed."
+                            appState?.showToast("Saved locally", message: error.localizedDescription)
+                        }
+                    } catch {
+                        saveMessage = "Saved locally, but Photos export failed."
+                        appState?.showToast("Saved locally", message: error.localizedDescription)
+                    }
+                } else {
+                    saveMessage = "Saved locally."
+                    appState?.showToast("Video saved")
                 }
 
                 appState?.recordingState = .saved(url)
-                appState?.showToast("Video saved")
-                saveResult = .success(localURL: url)
+                saveResult = .success(localURL: url, message: saveMessage)
             } catch {
                 appState?.recordingState = .failed(error.localizedDescription)
                 appState?.showToast("Save failed", message: error.localizedDescription)

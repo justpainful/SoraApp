@@ -2,13 +2,13 @@ import Foundation
 import SwiftUI
 
 enum SaveResult: Identifiable, Equatable {
-    case success(localURL: URL)
+    case success(localURL: URL, message: String)
     case failure(message: String)
 
     var id: String {
         switch self {
-        case .success(let localURL):
-            return "success-\(localURL.absoluteString)"
+        case .success(let localURL, let message):
+            return "success-\(localURL.absoluteString)-\(message)"
         case .failure(let message):
             return "failure-\(message)"
         }

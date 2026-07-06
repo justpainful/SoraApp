@@ -26,7 +26,7 @@ struct SaveResultSheet: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-            if case .success(let localURL) = result {
+            if case .success(let localURL, _) = result {
                 VStack(spacing: 8) {
                     Text("Local file")
                         .font(.caption.weight(.semibold))
@@ -85,8 +85,8 @@ struct SaveResultSheet: View {
 
     private var message: String {
         switch result {
-        case .success:
-            return "Your video is ready locally and has been sent to Photos."
+        case .success(_, let message):
+            return message
         case .failure(let message):
             return message
         }

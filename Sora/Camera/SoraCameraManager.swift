@@ -33,11 +33,16 @@ final class SoraCameraManager: NSObject, ObservableObject, SoraCameraFrameOutput
         authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
     }
 
+    func refreshAuthorizationStatus() {
+        updateAuthorizationStatus(AVCaptureDevice.authorizationStatus(for: .video))
+    }
+
     func requestAuthorization() {
         AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
             guard let self else { return }
             self.updateAuthorizationStatus(granted ? .authorized : .denied)
             if granted {
+                self.updateSessionError(nil)
                 self.startSession()
             } else {
                 self.updateSessionError("Camera permission was denied.")
