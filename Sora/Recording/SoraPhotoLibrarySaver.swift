@@ -12,7 +12,7 @@ struct SoraPhotoLibrarySaver: SoraPhotoSaving {
             throw PhotoSavingError.permissionDenied
         }
 
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             PHPhotoLibrary.shared().performChanges({
                 PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
             }) { success, error in
