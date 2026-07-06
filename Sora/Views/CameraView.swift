@@ -26,14 +26,12 @@ final class CameraPipelineController: ObservableObject {
     @MainActor
     init(
         cameraManager: SoraCameraManager = SoraCameraManager(),
-        processor: SoraImageProcessing = SoraFilterProcessor(),
-        renderer: SoraPreviewRenderer = SoraPreviewRenderer(),
-        recordingCoordinator: RecordingCoordinator = RecordingCoordinator()
+        processor: SoraImageProcessing = SoraFilterProcessor()
     ) {
         self.cameraManager = cameraManager
         self.processor = processor
-        self.renderer = renderer
-        self.recordingCoordinator = recordingCoordinator
+        self.renderer = SoraPreviewRenderer()
+        self.recordingCoordinator = RecordingCoordinator()
     }
 
     @MainActor
