@@ -34,7 +34,7 @@ Installable signed IPA output requires these repository secrets:
 - For signed runs, the artifact contains the exported `.ipa`.
 - For verification-only runs, the artifact contains build logs and an unsigned-build note instead of an installable IPA.
 
-## Signed IPA vs Verification-Only Build
+## Signed IPA vs Unsigned Build
 
 ### Signed IPA
 
@@ -42,12 +42,12 @@ Installable signed IPA output requires these repository secrets:
 - Runs project generation, archive, export, and artifact upload.
 - Produces an installable `.ipa` only if the certificate, provisioning profile, team ID, and bundle identifier all match.
 
-### Verification-Only Build
+### Unsigned Device IPA Build
 
 - Runs automatically when signing secrets are missing.
-- Still generates `Sora.xcodeproj` and compiles the app for iOS Simulator with `CODE_SIGNING_ALLOWED=NO`.
-- Does not produce an installable iPhone IPA.
-- This mode is compile verification only.
+- Generates `Sora.xcodeproj` and builds the app for `iphoneos` with signing disabled.
+- Packages `Payload/Sora.app` into an unsigned `.ipa` artifact.
+- This artifact is useful for sideload-style tooling, but it is not Apple-signed and is not directly installable through normal iOS distribution flows.
 
 ## Common Signing Failures
 
