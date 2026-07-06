@@ -164,6 +164,7 @@ struct CameraView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var pipeline = CameraPipelineController()
     @State private var hasStartedSession = false
+    @State private var pendingStartTask: Task<Void, Never>?
 
     var body: some View {
         GeometryReader { proxy in
@@ -253,13 +254,12 @@ struct CameraView: View {
                 pipeline.bind(appState: appState)
                 pipeline.cameraManager.refreshAuthorizationStatus()
                 appState.lensMode = pipeline.cameraManager.currentLens
-                if pipeline.authorizationStatus == .authorized && !hasStartedSession {
-                    hasStartedSession = true
-                    pipeline.start()
-                }
+                scheduleCameraStartIfReady()
             }
         }
         .onDisappear {
+            pendingStartTask?.cancel()
+            pendingStartTask = nil
             pipeline.stop()
             hasStartedSession = false
         }
@@ -267,7 +267,10 @@ struct CameraView: View {
             switch phase {
             case .active:
                 pipeline.cameraManager.refreshAuthorizationStatus()
+                scheduleCameraStartIfReady()
             case .inactive, .background:
+                pendingStartTask?.cancel()
+                pendingStartTask = nil
                 pipeline.stop()
                 hasStartedSession = false
             @unknown default:
@@ -277,11 +280,10 @@ struct CameraView: View {
         .onReceive(pipeline.cameraManager.$authorizationStatus) { status in
             switch status {
             case .authorized:
-                if !hasStartedSession {
-                    hasStartedSession = true
-                    pipeline.start()
-                }
+                scheduleCameraStartIfReady()
             case .denied, .restricted, .notDetermined:
+                pendingStartTask?.cancel()
+                pendingStartTask = nil
                 pipeline.stop()
                 hasStartedSession = false
             @unknown default:
@@ -356,5 +358,23 @@ struct CameraView: View {
         .padding(20)
         .soraGlassRounded(cornerRadius: 20, tint: .white.opacity(0.06), fallbackStrokeOpacity: 0.08)
         .padding(.horizontal, 24)
+    }
+
+    private func scheduleCameraStartIfReady() {
+        guard pipeline.authorizationStatus == .authorized else { return }
+        guard scenePhase == .active else { return }
+        guard !hasStartedSession else { return }
+
+        pendingStartTask?.cancel()
+        pendingStartTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            guard scenePhase == .active else { return }
+            guard pipeline.authorizationStatus == .authorized else { return }
+            guard !hasStartedSession else { return }
+
+            hasStartedSession = true
+            pipeline.start()
+        }
     }
 }
