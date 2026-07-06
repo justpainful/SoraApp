@@ -14,6 +14,8 @@ struct SaveResultSheet: View {
             Image(systemName: iconName)
                 .font(.system(size: 42, weight: .semibold))
                 .foregroundStyle(iconColor)
+                .frame(width: 84, height: 84)
+                .soraGlassCircle(tint: iconColor.opacity(0.16))
 
             Text(title)
                 .font(.system(size: 24, weight: .bold, design: .rounded))
@@ -37,7 +39,7 @@ struct SaveResultSheet: View {
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity)
-                .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .soraGlassRounded(cornerRadius: 18, tint: .white.opacity(0.08))
             }
 
             Button("Done") {
@@ -60,6 +62,7 @@ struct SaveResultSheet: View {
                 endPoint: .bottomTrailing
             )
         )
+        .presentationDragIndicator(.visible)
     }
 
     private var iconName: String {

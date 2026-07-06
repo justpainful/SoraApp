@@ -77,6 +77,12 @@ final class CameraPipelineController: ObservableObject {
     }
 
     @MainActor
+    func selectQuality(_ mode: SoraQualityMode) {
+        appState?.qualityMode = mode
+        cameraManager.setQualityMode(mode)
+    }
+
+    @MainActor
     func toggleRecording() {
         guard let appState else { return }
 
@@ -177,6 +183,8 @@ struct CameraView: View {
             VStack(spacing: 12) {
                 SoraHeader(cameraManager: pipeline.cameraManager) { lens in
                     pipeline.selectLens(lens)
+                } selectQuality: { mode in
+                    pipeline.selectQuality(mode)
                 } openSettings: {
                     appState.isSettingsOpen = true
                 }
@@ -200,7 +208,9 @@ struct CameraView: View {
 
                 ControlsOverlay(
                     coordinator: pipeline.recordingCoordinator,
+                    showOriginal: $pipeline.showOriginal,
                     toggleRecording: pipeline.toggleRecording,
+                    selectQuality: pipeline.selectQuality,
                     openFilters: { appState.isFilterStudioOpen = true }
                 )
             }
@@ -222,7 +232,10 @@ struct CameraView: View {
                 .environmentObject(appState)
         }
         .sheet(isPresented: $appState.isSettingsOpen) {
-            SettingsSheet(coordinator: pipeline.recordingCoordinator)
+            SettingsSheet(
+                coordinator: pipeline.recordingCoordinator,
+                onSelectQuality: pipeline.selectQuality
+            )
                 .environmentObject(appState)
         }
         .sheet(
@@ -250,6 +263,8 @@ struct CameraView: View {
                 appState.lensMode = lens
             }
         }
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: appState.isRecording)
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: appState.toast?.id)
     }
 
     @ViewBuilder

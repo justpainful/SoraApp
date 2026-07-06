@@ -47,11 +47,7 @@ struct RecordingHUD: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 16)
-        .background(.black.opacity(0.32), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
-        )
+        .soraGlassRounded(cornerRadius: 24, tint: .white.opacity(0.08))
         .onReceive(timer) { now = $0 }
     }
 

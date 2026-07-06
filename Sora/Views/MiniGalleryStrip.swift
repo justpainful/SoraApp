@@ -14,22 +14,14 @@ struct MiniGalleryStrip: View {
                         VStack(alignment: .leading, spacing: 8) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [
-                                                Color.white.opacity(0.2),
-                                                Color.blue.opacity(0.35)
-                                            ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
+                                    .fill(Color.white.opacity(0.08))
 
                                 Image(systemName: "video.fill")
                                     .font(.system(size: 22, weight: .semibold))
                                     .foregroundStyle(.white)
                             }
                             .frame(width: 116, height: 84)
+                            .soraGlassRounded(cornerRadius: 18, tint: .white.opacity(0.08))
 
                             Text(url.deletingPathExtension().lastPathComponent)
                                 .font(.caption.weight(.semibold))
@@ -42,11 +34,7 @@ struct MiniGalleryStrip: View {
                         }
                         .padding(10)
                         .frame(width: 136, alignment: .leading)
-                        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(.white.opacity(0.08), lineWidth: 1)
-                        )
+                        .soraGlassRounded(cornerRadius: 20, tint: .white.opacity(0.06))
                     }
                     .buttonStyle(.plain)
                 }

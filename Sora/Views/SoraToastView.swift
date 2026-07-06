@@ -8,10 +8,12 @@ struct SoraToastView: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: iconName)
                 .foregroundStyle(iconColor)
+                .frame(width: 34, height: 34)
+                .soraGlassCircle(tint: iconColor.opacity(0.14))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(toast.title)
-                    .font(.headline)
+                    .font(.headline.weight(.semibold))
                     .foregroundStyle(SoraTheme.textPrimary)
 
                 if let message = toast.message {
@@ -25,12 +27,16 @@ struct SoraToastView: View {
 
             Button(action: dismiss) {
                 Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(SoraTheme.textSecondary)
+                    .frame(width: 34, height: 34)
             }
+            .buttonStyle(.plain)
+            .soraGlassCircle(interactive: true)
             .accessibilityLabel("Dismiss")
         }
         .padding(16)
-        .soraPanel()
+        .soraGlassRounded(cornerRadius: 24, tint: .white.opacity(0.06))
         .padding(.horizontal, 16)
         .task(id: toast.id) {
             try? await Task.sleep(for: .seconds(3))

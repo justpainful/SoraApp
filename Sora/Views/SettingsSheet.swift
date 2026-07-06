@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsSheet: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject var coordinator: RecordingCoordinator
+    let onSelectQuality: (SoraQualityMode) -> Void
 
     var body: some View {
         NavigationStack {
@@ -19,8 +20,14 @@ struct SettingsSheet: View {
                 }
 
                 Section("Capture") {
-                    Text("Current build uses stable 1080p30. Quality mode is coming in v0.2.")
-                        .font(.subheadline)
+                    VStack(alignment: .leading, spacing: 12) {
+                        QualityModeButton(onSelect: onSelectQuality)
+                            .environmentObject(appState)
+
+                        Text("Current build uses stable 1080p30. Quality mode is limited while the recorder remains on the stable path.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Section("Recent recordings") {
@@ -57,9 +64,13 @@ struct SettingsSheet: View {
             )
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        appState.isSettingsOpen = false
+                    Button(action: { appState.isSettingsOpen = false }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .frame(width: 34, height: 34)
                     }
+                    .buttonStyle(.plain)
+                    .soraGlassCircle(interactive: true)
                 }
             }
             .navigationTitle("Settings")

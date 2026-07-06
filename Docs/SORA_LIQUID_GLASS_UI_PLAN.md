@@ -1,7 +1,7 @@
 # Sora Liquid Glass UI Plan
 
 ## Goal
-Prepare a native iOS 26 Liquid Glass direction for Sora without changing camera, recording, filter, or save behavior. This document only proposes isolated UI integration targets and safe fallback behavior.
+Prepare and now partially integrate a native iOS 26 Liquid Glass direction for Sora without changing camera, recording, filter, or save behavior. This document remains the visual direction source, while the branch now includes a first production integration pass with safe fallback behavior.
 
 ## Native API Baseline
 - Real Liquid Glass must use native SwiftUI iOS 26 APIs:
@@ -58,18 +58,14 @@ Prepare a native iOS 26 Liquid Glass direction for Sora without changing camera,
 - Close / dismiss: `xmark`
 
 ## Components That Should Integrate Later
-- `SoraHeader`
-  - Replace the current panel with a Liquid Glass top cluster.
-- `ControlsOverlay`
-  - Host a Liquid Glass bottom dock around existing actions.
-- `RecordButton`
-  - Re-skin only after workflow fixes are merged.
-- `FilterStudioSheet`
-  - Adopt Liquid Glass header/preset treatment without changing slider behavior.
-- `SoraToastView`
-  - Convert to a compact glass confirmation surface.
+- `MiniGalleryStrip`
+  - Decide whether to keep the strip long-term or collapse into a single latest-shot affordance.
+- `RecordingHUD`
+  - Validate visibility on bright live footage and tune if necessary.
 - `SaveResultSheet`
-  - Decide whether the final product still needs a full sheet after toast integration.
+  - Decide whether the final product should remain sheet-first or move fully to toast-first feedback.
+- `SettingsSheet`
+  - Decide whether to keep list-first settings or condense more capture controls into camera chrome.
 
 ## Components That Should Not Be Glass-Heavy
 - `SettingsSheet`
@@ -80,15 +76,15 @@ Prepare a native iOS 26 Liquid Glass direction for Sora without changing camera,
   - Keep timer and status plain/high-contrast; glass can frame surrounding actions but should not obscure time visibility.
 
 ## Integration Strategy After Current PR Merges
-1. Land the recording/workflow fixes first.
-2. Validate the active Xcode SDK exposes the iOS 26 SwiftUI Liquid Glass APIs.
-3. Swap one production area at a time:
-   - top bar
-   - bottom dock
-   - filter sheet header/chips
-   - save toast
-4. Re-run visual checks for contrast, camera readability, and hit targets on bright and dark footage.
-5. Keep fallback branches behind availability checks for non-iOS-26 builds.
+1. Validate the active Xcode SDK exposes the iOS 26 SwiftUI Liquid Glass APIs for the production files already updated in this branch.
+2. Run visual checks for contrast, camera readability, and hit targets on bright and dark footage.
+3. Verify all new controls under real device states:
+   - quality menu
+   - compare toggle
+   - share latest recording
+   - filter reset
+4. Keep fallback branches behind availability checks for non-iOS-26 builds.
+5. Refine the remaining non-integrated or partially integrated surfaces only after device testing feedback.
 
 ## Risks
 - Glass overuse can reduce camera readability.

@@ -12,6 +12,7 @@ struct QualityModeButton: View {
             }
         }
         .pickerStyle(.segmented)
+        .tint(SoraTheme.accent)
         .onChange(of: appState.qualityMode) { _, value in
             onSelect(value)
         }

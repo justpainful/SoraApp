@@ -18,33 +18,13 @@ struct PresetPill: View {
         }) {
             Text(title)
                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundColor(isSelected ? .white : .white.opacity(0.7))
+                .foregroundColor(isSelected ? .black : .white.opacity(0.82))
                 .padding(.horizontal, 18)
-                .padding(.vertical, 8)
-                .background(
-                    ZStack {
-                        if isSelected {
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Color(red: 0.12, green: 0.45, blue: 0.95),
-                                            Color(red: 0.35, green: 0.68, blue: 1.0)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .shadow(color: Color(red: 0.12, green: 0.45, blue: 0.95).opacity(0.4), radius: 6, x: 0, y: 3)
-                        } else {
-                            Capsule()
-                                .fill(Color.white.opacity(0.05))
-                                .overlay(
-                                    Capsule()
-                                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                                )
-                        }
-                    }
+                .padding(.vertical, 10)
+                .background(Capsule().fill(isSelected ? Color.white : Color.clear))
+                .soraGlassCapsule(
+                    tint: isSelected ? .white.opacity(0.20) : .white.opacity(0.08),
+                    interactive: true
                 )
                 .scaleEffect(isSelected ? 1.04 : 1.0)
                 .animation(.spring(response: 0.22, dampingFraction: 0.7, blendDuration: 0), value: isSelected)
