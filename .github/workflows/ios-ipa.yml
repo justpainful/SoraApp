@@ -10,14 +10,6 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    env:
-      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-      P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
-      PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
-      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-      DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
-      BUNDLE_IDENTIFIER: ${{ secrets.BUNDLE_IDENTIFIER }}
-      EXPORT_METHOD: ${{ secrets.EXPORT_METHOD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,7 +30,7 @@ jobs:
       - name: Clean build directory
         run: rm -rf build build-output
 
-      - name: Build archive or compile verification
+      - name: Build unsigned Sideloadly IPA
         run: bash ./Scripts/build_ipa.sh
 
       - name: Upload build artifacts
