@@ -5,7 +5,9 @@ import SwiftUI
 final class SoraPreviewRenderer: ObservableObject, SoraLiveRendering {
     @Published private(set) var image: CIImage?
 
-    func render(_ image: CIImage) {
-        self.image = image
+    nonisolated func render(_ image: CIImage) {
+        Task { @MainActor in
+            self.image = image
+        }
     }
 }
