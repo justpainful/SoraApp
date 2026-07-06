@@ -18,6 +18,7 @@ final class SoraAssetWriterRecorder: SoraVideoRecording {
     private var didStartSession = false
     private var lastTimestamp: CMTime = .zero
     private var sessionStartTimestamp: CMTime?
+    private var writtenFrameCount = 0
 
     var isRecording: Bool {
         writerQueue.sync { assetWriter != nil }
@@ -25,9 +26,7 @@ final class SoraAssetWriterRecorder: SoraVideoRecording {
 
     func startRecording(outputSize: CGSize, frameRate: Int) throws {
         try writerQueue.sync {
-            if assetWriter != nil {
-                throw RecorderError.alreadyRecording
-            }
+            if assetWriter != nil { throw RecorderError.alreadyRecording }
 
             let normalizedSize = Self.normalizedOutputSize(outputSize)
             let recordingsDirectory = try Self.makeRecordingsDirectory()
@@ -52,15 +51,9 @@ final class SoraAssetWriterRecorder: SoraVideoRecording {
                 sourcePixelBufferAttributes: attributes
             )
 
-            guard writer.canAdd(input) else {
-                throw RecorderError.cannotAddWriterInput
-            }
-
+            guard writer.canAdd(input) else { throw RecorderError.cannotAddWriterInput }
             writer.add(input)
-
-            guard writer.startWriting() else {
-                throw writer.error ?? RecorderError.failedToStartWriting
-            }
+            guard writer.startWriting() else { throw writer.error ?? RecorderError.failedToStartWriting }
 
             self.assetWriter = writer
             self.writerInput = input
@@ -71,6 +64,7 @@ final class SoraAssetWriterRecorder: SoraVideoRecording {
             self.didStartSession = false
             self.lastTimestamp = .zero
             self.sessionStartTimestamp = nil
+            self.writtenFrameCount = 0
         }
     }
 
@@ -80,31 +74,14 @@ final class SoraAssetWriterRecorder: SoraVideoRecording {
                 let writer = self.assetWriter,
                 let input = self.writerInput,
                 let adaptor = self.pixelBufferAdaptor,
-                writer.status == .writing
-            else {
-                return
-            }
-
-            let relativeTimestamp = self.relativeTimestamp(for: timestamp)
-
-            if !self.didStartSession {
-                writer.startSession(atSourceTime: .zero)
-                self.didStartSession = true
-            }
-
-            guard input.isReadyForMoreMediaData else {
-                return
-            }
-
-            guard let pool = adaptor.pixelBufferPool else {
-                return
-            }
+                writer.status == .writing,
+                input.isReadyForMoreMediaData,
+                let pool = adaptor.pixelBufferPool
+            else { return }
 
             var pixelBuffer: CVPixelBuffer?
             let createStatus = CVPixelBufferPoolCreatePixelBuffer(nil, pool, &pixelBuffer)
-            guard createStatus == kCVReturnSuccess, let pixelBuffer else {
-                return
-            }
+            guard createStatus == kCVReturnSuccess, let pixelBuffer else { return }
 
             CVPixelBufferLockBaseAddress(pixelBuffer, [])
             self.ciContext.render(
@@ -115,18 +92,25 @@ final class SoraAssetWriterRecorder: SoraVideoRecording {
             )
             CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
 
+            let relativeTimestamp = self.relativeTimestamp(for: timestamp)
             let monotonicTimestamp = CMTimeCompare(relativeTimestamp, self.lastTimestamp) >= 0
                 ? relativeTimestamp
                 : CMTimeAdd(self.lastTimestamp, CMTime(value: 1, timescale: CMTimeScale(self.frameRate)))
 
+            if !self.didStartSession {
+                writer.startSession(atSourceTime: .zero)
+                self.didStartSession = true
+            }
+
             if adaptor.append(pixelBuffer, withPresentationTime: monotonicTimestamp) {
                 self.lastTimestamp = monotonicTimestamp
+                self.writtenFrameCount += 1
             }
         }
     }
 
     func stopRecording() async throws -> URL {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URL, Error>) in
             writerQueue.async {
                 guard let writer = self.assetWriter,
                       let input = self.writerInput,
@@ -135,8 +119,11 @@ final class SoraAssetWriterRecorder: SoraVideoRecording {
                     return
                 }
 
-                if !self.didStartSession {
-                    self.appendFallbackFrameIfNeeded()
+                guard self.writtenFrameCount > 0 else {
+                    writer.cancelWriting()
+                    self.resetWriterState()
+                    continuation.resume(throwing: RecorderError.noFramesCaptured)
+                    return
                 }
 
                 input.markAsFinished()
@@ -156,45 +143,9 @@ final class SoraAssetWriterRecorder: SoraVideoRecording {
     }
 
     private func relativeTimestamp(for timestamp: CMTime) -> CMTime {
-        if let sessionStartTimestamp {
-            return CMTimeSubtract(timestamp, sessionStartTimestamp)
-        }
-
+        if let sessionStartTimestamp { return CMTimeSubtract(timestamp, sessionStartTimestamp) }
         sessionStartTimestamp = timestamp
         return .zero
-    }
-
-    private func appendFallbackFrameIfNeeded() {
-        guard
-            let writer = assetWriter,
-            let adaptor = pixelBufferAdaptor,
-            let pool = adaptor.pixelBufferPool,
-            writer.status == .writing
-        else {
-            return
-        }
-
-        writer.startSession(atSourceTime: .zero)
-        didStartSession = true
-
-        var pixelBuffer: CVPixelBuffer?
-        let status = CVPixelBufferPoolCreatePixelBuffer(nil, pool, &pixelBuffer)
-        guard status == kCVReturnSuccess, let pixelBuffer else {
-            return
-        }
-
-        CVPixelBufferLockBaseAddress(pixelBuffer, [])
-        ciContext.render(
-            CIImage(color: .black).cropped(to: CGRect(origin: .zero, size: outputSize)),
-            to: pixelBuffer,
-            bounds: CGRect(origin: .zero, size: outputSize),
-            colorSpace: CGColorSpaceCreateDeviceRGB()
-        )
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-
-        if adaptor.append(pixelBuffer, withPresentationTime: .zero) {
-            lastTimestamp = .zero
-        }
     }
 
     private func resetWriterState() {
@@ -206,6 +157,7 @@ final class SoraAssetWriterRecorder: SoraVideoRecording {
         didStartSession = false
         lastTimestamp = .zero
         sessionStartTimestamp = nil
+        writtenFrameCount = 0
     }
 
     private static func makeRecordingsDirectory() throws -> URL {
@@ -248,9 +200,7 @@ final class SoraAssetWriterRecorder: SoraVideoRecording {
     }
 
     private static func renderTransform(for extent: CGRect, outputSize: CGSize) -> CGAffineTransform {
-        guard extent.width > 0, extent.height > 0 else {
-            return .identity
-        }
+        guard extent.width > 0, extent.height > 0 else { return .identity }
 
         let scaleX = outputSize.width / extent.width
         let scaleY = outputSize.height / extent.height
@@ -273,6 +223,7 @@ enum RecorderError: LocalizedError {
     case cannotAddWriterInput
     case failedToStartWriting
     case finishFailed
+    case noFramesCaptured
 
     var errorDescription: String? {
         switch self {
@@ -286,6 +237,8 @@ enum RecorderError: LocalizedError {
             return "The recorder could not start writing video frames."
         case .finishFailed:
             return "The recording could not be finalized."
+        case .noFramesCaptured:
+            return "No camera frames were captured. Try again after the live preview appears."
         }
     }
 }

@@ -14,22 +14,13 @@ struct MiniGalleryStrip: View {
                         VStack(alignment: .leading, spacing: 8) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [
-                                                Color.white.opacity(0.2),
-                                                Color.blue.opacity(0.35)
-                                            ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
+                                    .fill(Color.white.opacity(0.12))
 
                                 Image(systemName: "video.fill")
                                     .font(.system(size: 22, weight: .semibold))
                                     .foregroundStyle(.white)
                             }
-                            .frame(width: 116, height: 84)
+                            .frame(width: 128, height: 84)
 
                             Text(url.deletingPathExtension().lastPathComponent)
                                 .font(.caption.weight(.semibold))
@@ -41,7 +32,7 @@ struct MiniGalleryStrip: View {
                                 .foregroundStyle(.white.opacity(0.58))
                         }
                         .padding(10)
-                        .frame(width: 136, alignment: .leading)
+                        .frame(width: 148, alignment: .leading)
                         .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -53,6 +44,7 @@ struct MiniGalleryStrip: View {
             }
             .padding(.horizontal, 1)
         }
+        .frame(maxHeight: 154)
     }
 
     private func relativeDate(for url: URL) -> String {

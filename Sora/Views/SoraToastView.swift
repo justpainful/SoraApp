@@ -38,12 +38,17 @@ struct SoraToastView: View {
         }
     }
 
-    private var normalizedTitle: String {
-        toast.title.lowercased()
+    private var normalizedText: String {
+        ([toast.title, toast.message].compactMap { $0 }.joined(separator: " ")).lowercased()
     }
 
     private var iconName: String {
-        if normalizedTitle.contains("fail") || normalizedTitle.contains("denied") || normalizedTitle.contains("unavailable") {
+        if normalizedText.contains("fail")
+            || normalizedText.contains("denied")
+            || normalizedText.contains("unavailable")
+            || normalizedText.contains("cannot")
+            || normalizedText.contains("error")
+            || normalizedText.contains("missing") {
             return "exclamationmark.triangle.fill"
         }
         return "checkmark.circle.fill"
