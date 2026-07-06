@@ -34,10 +34,12 @@ The following workspaces and files are left under `Workspaces/` as historical ar
 ## Workflow & Build Status
 
 * **Workflow Location**: [.github/workflows/ios-ipa.yml](file:///c:/Users/kuroi/Downloads/Sora_Agent_Starter/Sora_Agent_Starter/.github/workflows/ios-ipa.yml)
-* **Execution Path**: The workflow is configured to check out the repository root, run `bash ./Scripts/bootstrap_project.sh` to generate the project, and then run `bash ./Scripts/build_ipa.sh`.
+* **Execution Path**: The workflow checks out the repository root, runs `bash ./Scripts/bootstrap_project.sh` to generate the project, and then runs `bash ./Scripts/build_ipa.sh`.
+* **Build Status**: **SUCCESSFUL**. The latest GitHub Actions run `#28762525924` (Job `85280504801`) succeeded in `1m 3s`.
+* **Build Verification Output**: Since Apple signing secrets are not present in this context, the workflow successfully compiled the project in verification mode (Simulator build) and uploaded `sora-build-output` containing the compile verification log and verification readme.
 * **Build Modes**:
   * **With Signing Secrets**: If GitHub repository secrets are set (`APPLE_CERTIFICATE_BASE64`, `P12_PASSWORD`, `PROVISIONING_PROFILE_BASE64`, `KEYCHAIN_PASSWORD`, `DEVELOPMENT_TEAM`, `BUNDLE_IDENTIFIER`, `EXPORT_METHOD`), the workflow will build a Release archive and export a signed `.ipa` file.
-  * **Without Secrets (Verification Mode)**: If any signing secrets are missing, the workflow falls back to a verification-only simulator build (exit code 0) to verify compilation and project structure correctness.
+  * **Without Secrets (Verification Mode)**: If signing secrets are missing, the workflow falls back to a verification-only simulator build (exit code 0) to verify compilation and project structure correctness.
 
 ## Remaining Issues
 
