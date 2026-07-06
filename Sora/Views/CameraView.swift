@@ -300,23 +300,37 @@ struct CameraView: View {
     @ViewBuilder
     private var previewContent: some View {
         ZStack {
-            MetalPreviewView(
-                image: Binding(
-                    get: { pipeline.previewImage },
-                    set: { _ in }
-                ),
-                errorMessage: $pipeline.renderErrorMessage
-            )
+            CameraSessionPreviewView(session: pipeline.cameraManager.previewSession)
             .ignoresSafeArea()
+
+            if !pipeline.showOriginal, pipeline.previewImage != nil {
+                MetalPreviewView(
+                    image: Binding(
+                        get: { pipeline.previewImage },
+                        set: { _ in }
+                    ),
+                    errorMessage: $pipeline.renderErrorMessage
+                )
+                .ignoresSafeArea()
+            }
 
             if let cameraError = pipeline.cameraManager.sessionErrorMessage {
                 errorCard(title: "Camera unavailable", message: cameraError)
-            } else if let renderError = pipeline.renderErrorMessage {
-                errorCard(title: "Preview unavailable", message: renderError)
-            } else if !pipeline.hasRenderedFrame {
+            } else if !pipeline.cameraManager.isRunning && !pipeline.hasRenderedFrame {
                 ProgressView("Loading camera...")
                     .padding(20)
                     .soraGlassRounded(cornerRadius: 20, tint: .white.opacity(0.06), fallbackStrokeOpacity: 0.08)
+            } else if let renderError = pipeline.renderErrorMessage, !pipeline.showOriginal {
+                VStack {
+                    Spacer()
+                    Text(renderError)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.75))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .soraGlassCapsule(tint: .white.opacity(0.06), fallbackStrokeOpacity: 0.08)
+                        .padding(.bottom, 120)
+                }
             }
         }
     }

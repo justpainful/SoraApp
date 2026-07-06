@@ -27,6 +27,10 @@ final class SoraCameraManager: NSObject, ObservableObject, SoraCameraFrameOutput
     private var isConfigured = false
     private var isConfiguring = false
 
+    var previewSession: AVCaptureSession {
+        captureSession
+    }
+
     override init() {
         super.init()
         refreshAvailableLenses()
