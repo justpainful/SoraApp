@@ -3,19 +3,17 @@ import SwiftUI
 struct SettingsSheet: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject var coordinator: RecordingCoordinator
+    @ObservedObject var cameraManager: SoraCameraManager
+    let hasRenderedFrame: Bool
+    let latestOutputSize: CGSize
+    let renderErrorMessage: String?
 
     var body: some View {
         NavigationStack {
             List {
                 Section("Privacy") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Local-only processing")
-                            .font(.headline)
-                        Text("Sora processes camera frames on-device and does not use networking.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
+                    Text("Sora works on device and does not use networking.")
+                        .font(.subheadline)
                 }
 
                 Section("Capture") {
@@ -23,9 +21,9 @@ struct SettingsSheet: View {
                         .font(.subheadline)
                 }
 
-                Section("Recent recordings") {
+                Section("Recent clips") {
                     if coordinator.recentRecordings.isEmpty {
-                        Text("No recent recordings")
+                        Text("No recent clips")
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(coordinator.recentRecordings, id: \.self) { url in
@@ -44,6 +42,19 @@ struct SettingsSheet: View {
                     Button("Reset filters") {
                         appState.resetFilters()
                     }
+                }
+
+                Section("Debug") {
+                    LabeledContent("Authorization", value: String(describing: cameraManager.authorizationStatus))
+                    LabeledContent("Running", value: cameraManager.isRunning ? "Yes" : "No")
+                    LabeledContent("Lens", value: cameraManager.currentLens.rawValue)
+                    LabeledContent("Lenses", value: cameraManager.availableLensModes.map(\.rawValue).joined(separator: ", "))
+                    LabeledContent("Preview", value: hasRenderedFrame ? "Ready" : "Waiting")
+                    LabeledContent("Output", value: "\(Int(latestOutputSize.width)) × \(Int(latestOutputSize.height))")
+                    LabeledContent("State", value: appState.recordingState.statusText)
+                    LabeledContent("Last", value: appState.lastSavedVideoURL?.lastPathComponent ?? "None")
+                    LabeledContent("Cam error", value: cameraManager.sessionErrorMessage ?? "None")
+                    LabeledContent("Render error", value: renderErrorMessage ?? "None")
                 }
             }
             .scrollContentBackground(.hidden)
