@@ -169,8 +169,8 @@ struct CameraView: View {
                 previewContent
             } else {
                 CameraPermissionView(
-                    isDenied: pipeline.authorizationStatus == .denied || pipeline.authorizationStatus == .restricted,
-                    action: handlePermissionAction
+                    action: handlePermissionAction,
+                    isDenied: pipeline.authorizationStatus == .denied || pipeline.authorizationStatus == .restricted
                 )
             }
 
