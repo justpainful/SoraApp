@@ -16,7 +16,7 @@ Ship a local beauty-retouching camera/editor pass for Sora with realistic skin r
 - [x] English LTR verified
 - [ ] Unit tests pass
 - [ ] UI tests pass where appropriate
-- [ ] App builds successfully
+- [x] App builds successfully
 - [x] No fake production functionality remains
 
 ## Current Scope
@@ -39,5 +39,5 @@ Ship a local beauty-retouching camera/editor pass for Sora with realistic skin r
 - [ ] UI controls for shaping or geometry edits
 
 ## Verification Notes
-- Build and runtime verification are pending because this Windows environment does not have the Apple `swift` toolchain or Xcode available.
+- Local Xcode verification is still unavailable on this Windows host, but the GitHub macOS workflow completed successfully for the current branch.
 - Git integration verification succeeded on branch `feature/liquid-glass-ui-prototype`.
