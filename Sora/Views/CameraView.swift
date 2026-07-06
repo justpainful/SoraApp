@@ -166,62 +166,65 @@ struct CameraView: View {
     @State private var hasStartedSession = false
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
+        GeometryReader { proxy in
+            ZStack {
+                Color.black.ignoresSafeArea()
 
-            if pipeline.authorizationStatus == .authorized {
-                previewContent
-            } else {
-                CameraPermissionView(
-                    action: handlePermissionAction,
-                    isDenied: pipeline.authorizationStatus == .denied || pipeline.authorizationStatus == .restricted
-                )
-            }
-
-            if let toast = appState.toast {
-                VStack {
-                    Spacer()
-                    SoraToastView(toast: toast) {
-                        if appState.toast?.id == toast.id {
-                            appState.toast = nil
-                        }
-                    }
-                }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .safeAreaInset(edge: .top) {
-            if pipeline.authorizationStatus == .authorized {
-                SoraHeader(cameraManager: pipeline.cameraManager) { lens in
-                    pipeline.selectLens(lens)
-                } selectQuality: { mode in
-                    pipeline.selectQuality(mode)
-                } openSettings: {
-                    appState.isSettingsOpen = true
-                }
-                .padding(.top, 6)
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            if pipeline.authorizationStatus == .authorized {
-                VStack(spacing: 10) {
-                    if appState.isRecording || appState.recordingState == .saving {
-                        RecordingHUD(
-                            state: appState.recordingState,
-                            onRecordTapped: pipeline.toggleRecording,
-                            onStopTapped: pipeline.toggleRecording
-                        )
-                        .padding(.horizontal, 16)
-                    }
-
-                    ControlsOverlay(
-                        coordinator: pipeline.recordingCoordinator,
-                        showOriginal: $pipeline.showOriginal,
-                        toggleRecording: pipeline.toggleRecording,
-                        openFilters: { appState.isFilterStudioOpen = true }
+                if pipeline.authorizationStatus == .authorized {
+                    previewContent
+                } else {
+                    CameraPermissionView(
+                        action: handlePermissionAction,
+                        isDenied: pipeline.authorizationStatus == .denied || pipeline.authorizationStatus == .restricted
                     )
                 }
-                .padding(.bottom, 4)
+
+                if pipeline.authorizationStatus == .authorized {
+                    VStack(spacing: 0) {
+                        SoraHeader(cameraManager: pipeline.cameraManager) { lens in
+                            pipeline.selectLens(lens)
+                        } selectQuality: { mode in
+                            pipeline.selectQuality(mode)
+                        } openSettings: {
+                            appState.isSettingsOpen = true
+                        }
+                        .padding(.top, max(proxy.safeAreaInsets.top, 12))
+
+                        Spacer(minLength: 0)
+
+                        VStack(spacing: 10) {
+                            if appState.isRecording || appState.recordingState == .saving {
+                                RecordingHUD(
+                                    state: appState.recordingState,
+                                    onRecordTapped: pipeline.toggleRecording,
+                                    onStopTapped: pipeline.toggleRecording
+                                )
+                                .padding(.horizontal, 16)
+                            }
+
+                            ControlsOverlay(
+                                coordinator: pipeline.recordingCoordinator,
+                                showOriginal: $pipeline.showOriginal,
+                                toggleRecording: pipeline.toggleRecording,
+                                openFilters: { appState.isFilterStudioOpen = true }
+                            )
+                        }
+                        .padding(.bottom, max(proxy.safeAreaInsets.bottom, 10))
+                    }
+                }
+
+                if let toast = appState.toast {
+                    VStack {
+                        Spacer()
+                        SoraToastView(toast: toast) {
+                            if appState.toast?.id == toast.id {
+                                appState.toast = nil
+                            }
+                        }
+                        .padding(.bottom, max(proxy.safeAreaInsets.bottom, 10))
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
         }
         .sheet(isPresented: $appState.isFilterStudioOpen) {
@@ -233,7 +236,7 @@ struct CameraView: View {
                 coordinator: pipeline.recordingCoordinator,
                 onSelectQuality: pipeline.selectQuality
             )
-                .environmentObject(appState)
+            .environmentObject(appState)
         }
         .sheet(
             item: Binding(
@@ -250,7 +253,7 @@ struct CameraView: View {
                 pipeline.bind(appState: appState)
                 pipeline.cameraManager.refreshAuthorizationStatus()
                 appState.lensMode = pipeline.cameraManager.currentLens
-                if !hasStartedSession {
+                if pipeline.authorizationStatus == .authorized && !hasStartedSession {
                     hasStartedSession = true
                     pipeline.start()
                 }
@@ -264,11 +267,21 @@ struct CameraView: View {
             switch phase {
             case .active:
                 pipeline.cameraManager.refreshAuthorizationStatus()
-                if pipeline.authorizationStatus == .authorized && !hasStartedSession {
+            case .inactive, .background:
+                pipeline.stop()
+                hasStartedSession = false
+            @unknown default:
+                break
+            }
+        }
+        .onReceive(pipeline.cameraManager.$authorizationStatus) { status in
+            switch status {
+            case .authorized:
+                if !hasStartedSession {
                     hasStartedSession = true
                     pipeline.start()
                 }
-            case .inactive, .background:
+            case .denied, .restricted, .notDetermined:
                 pipeline.stop()
                 hasStartedSession = false
             @unknown default:

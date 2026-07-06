@@ -43,7 +43,6 @@ final class SoraCameraManager: NSObject, ObservableObject, SoraCameraFrameOutput
             self.updateAuthorizationStatus(granted ? .authorized : .denied)
             if granted {
                 self.updateSessionError(nil)
-                self.startSession()
             } else {
                 self.updateSessionError("Camera permission was denied.")
             }
