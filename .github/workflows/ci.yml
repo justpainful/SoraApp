@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Sora
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate bundle identifier
+        run: |
+          grep -q "BUNDLE_IDENTIFIER: com.local.sora" project.yml
+          echo "Bundle identifier confirmed: com.local.sora"
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate Xcode project
+        run: bash Scripts/bootstrap_project.sh
+
+      - name: Build for iOS Simulator
+        run: |
+          xcodebuild \
+            -project Sora.xcodeproj \
+            -scheme Sora \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
